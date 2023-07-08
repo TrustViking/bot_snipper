@@ -13,7 +13,7 @@ class Client:
     - logger: Logger
     """
     countInstance=0
-
+    #
     def __init__(self, logger: Logger):
         Client.countInstance+=1
         self.countInstance=Client.countInstance
