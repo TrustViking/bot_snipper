@@ -22,6 +22,7 @@ class Logger:
         - logging.ERROR: Ошибки, которые не приводят к прекращению работы программы.
         - logging.CRITICAL: Критические ошибки, которые приводят к прекращению работы программы.
         """
+        self.log_path = os.path.join(sys.path[0], 'log_file')
         self.log_file = os.path.join(sys.path[0], 'log_file', log_file or 'log.txt')
         self.log_level = log_level
         self._create_log_directory()
@@ -83,66 +84,5 @@ class Logger:
         - log_level: Уровень логирования.
         """
         self.log_level = log_level
-        #self.logger.setLevel(self.log_level)
         self.logger=self._setup_logger()
 
-
-'''
-
-from logger_module import Logger
-import logging
-
-
-class MainClass:
-    def __init__(self):
-        self.logger = Logger()
-
-    def perform_action(self):
-        """
-        Выполняет действие и записывает информацию в лог.
-        """
-        # Выполнение действия
-        self.logger.log_info('Действие выполнено успешно.')
-
-        # Другие действия...
-
-        # Запись дополнительной информации в лог
-        self.logger.log_info('Еще информация в логе.')
-
-
-def main():
-    # Создание экземпляра основного класса
-    main_class = MainClass()
-
-    # Установка наименования файла лога
-    log_file = 'custom_log.txt'
-    main_class.logger.set_log_file(log_file)
-
-    # Установка уровня логирования
-    log_level = logging.DEBUG
-    main_class.logger.set_log_level(log_level)
-
-    # Выполнение действий
-    main_class.perform_action()
-
-
-if __name__ == '__main__':
-    main()
-
-***    
-В модуле логирования (logger_module.py) добавлены 
-методы set_log_file и set_log_level, которые позволяют устанавливать 
-имя файла лога и уровень логирования соответственно. 
-Также добавлена проверка и создание директории для хранения файлов журнала 
-при инициализации объекта Logger. 
-Используется путь os.path.join(sys.path[0], 'log', log_file) 
-для создания пути "log/log.txt" для сохранения файла журнала по умолчанию.
-
-В основном модуле (main_module.py) происходит использование класса 
-Logger для записи информации в лог. 
-Методы set_log_file и set_log_level вызываются для установки 
-пользовательского имени файла лога и уровня логирования. 
-Затем выполняются действия с использованием метода perform_action, 
-который записывает информацию в лог.
-
-'''
