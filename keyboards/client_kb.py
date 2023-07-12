@@ -18,8 +18,8 @@ class KeyBoardClient:
         #
         # кнопки
         #self.b_CS = None
-        self.b_IMD = None
-        self.b_Forum = None
+        self.b_y2b = None
+        #self.b_Forum = None
         self.user_video = None
         self.b_2020 = None
         self.b_2021 = None
@@ -34,8 +34,10 @@ class KeyBoardClient:
     # ловим хэндлером: dp.register_callback_query_handler
     def _make_name_button(self):
         self.name_button['/start']='/start'
-        self.name_button['1']='Передачи с ИМД'
-        self.name_button['2']='Форумы СО'
+        # menu # 1
+        self.name_button['1']='Видео с youtube'
+        self.name_button['2']='Свое видео'
+        # menu # 2
         self.name_button['3']='Свое видео'
         self.name_button['4']='2020'
         self.name_button['5']='2021'
@@ -47,17 +49,17 @@ class KeyBoardClient:
     # создаем кнопку старта, отправляет команду '/start'
     # используем, когда пользователь набирает любые символы, кроме '/start'
     def start_button(self): 
-        start_button = InlineKeyboardButton(text="Для старта нажмите на меня", 
+        start_button = InlineKeyboardButton(text="Это кнопка \U0001F680 ПУСК", 
                                             callback_data='/start')
         self.keyboard.add(start_button)
     #
     # создаем кнопки меню первого уровня
     def menu_1_level(self):
-        self.b_IMD = InlineKeyboardButton(text=self.name_button['1'], callback_data='1')
-        self.b_Forum = InlineKeyboardButton(text=self.name_button['2'], callback_data='2')
-        self.user_video = InlineKeyboardButton(text=self.name_button['3'], callback_data='3')
+        self.b_y2b = InlineKeyboardButton(text=self.name_button['1'], callback_data='1')
+        self.user_video = InlineKeyboardButton(text=self.name_button['2'], callback_data='2')
+        #self.user_video = InlineKeyboardButton(text=self.name_button['3'], callback_data='3')
         #self.kb.add(self.b_IMD).add(self.b_Forum).insert(self.b_CS)
-        self.keyboard.add(self.b_IMD).row(self.b_Forum).row(self.user_video)
+        self.keyboard.row(self.b_y2b).row(self.user_video)
     #
     # создаем кнопки меню второго уровня
     def menu_2_level(self):
