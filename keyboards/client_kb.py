@@ -19,7 +19,10 @@ class KeyBoardClient:
         # кнопки
         #self.b_CS = None
         self.b_y2b = None
-        #self.b_Forum = None
+        self.b_OK_y2b = None
+        self.b_NO_y2b = None
+        self.b_OK_y2b_bad = None
+        self.b_NO_y2b_bad = None
         self.user_video = None
         self.b_2020 = None
         self.b_2021 = None
@@ -37,13 +40,20 @@ class KeyBoardClient:
         # menu # 1
         self.name_button['1']='Видео с youtube'
         self.name_button['2']='Свое видео'
-        # menu # 2
-        self.name_button['3']='Свое видео'
-        self.name_button['4']='2020'
-        self.name_button['5']='2021'
-        self.name_button['6']='2022'
-        self.name_button['7']='2023'
-        self.name_button['8']='меню 3 уровня'
+        # menu OK/No link norm
+        self.name_button['3']='OK'
+        self.name_button['4']='NO'
+        # menu OK/No link bad
+        self.name_button['5']='OK'
+        self.name_button['6']='NO'
+        #
+        #
+        self.name_button['7']='2020'
+        self.name_button['8']='2021'
+        self.name_button['9']='2022'
+        self.name_button['10']='2023'
+
+        self.name_button['20']='меню 3 уровня'
         print(f'[_make_name_button] создали клавиатуру № {self.countInstance}')
     #
     # создаем кнопку старта, отправляет команду '/start'
@@ -60,20 +70,34 @@ class KeyBoardClient:
         #self.user_video = InlineKeyboardButton(text=self.name_button['3'], callback_data='3')
         #self.kb.add(self.b_IMD).add(self.b_Forum).insert(self.b_CS)
         self.keyboard.row(self.b_y2b).row(self.user_video)
+
+    # создаем кнопку ОК & NO для youtube_link_handler
+    def button_OK_NO_youtube_link(self):
+        self.b_OK_y2b = InlineKeyboardButton(text=self.name_button['3'], callback_data='3')
+        self.b_NO_y2b = InlineKeyboardButton(text=self.name_button['4'], callback_data='4')
+        #self.kb.add(self.b_IMD).add(self.b_Forum).insert(self.b_CS)
+        self.keyboard.row(self.b_OK_y2b).row(self.b_NO_y2b)
+    #
+    # создаем кнопку ОК & NO для youtube_link_handler
+    def button_OK_NO_youtube_link_bad(self):
+        self.b_OK_y2b_bad = InlineKeyboardButton(text=self.name_button['5'], callback_data='3')
+        self.b_NO_y2b_bad = InlineKeyboardButton(text=self.name_button['6'], callback_data='4')
+        #self.kb.add(self.b_IMD).add(self.b_Forum).insert(self.b_CS)
+        self.keyboard.row(self.b_OK_y2b_bad).row(self.b_NO_y2b_bad)
     #
     # создаем кнопки меню второго уровня
     def menu_2_level(self):
-        self.b_2020 = InlineKeyboardButton(text=self.name_button['4'], callback_data='4')
-        self.b_2021 = InlineKeyboardButton(text=self.name_button['5'], callback_data='5')
-        self.b_2022 = InlineKeyboardButton(text=self.name_button['6'], callback_data='6')
-        self.b_2023 = InlineKeyboardButton(text=self.name_button['7'], callback_data='7')
+        self.b_2020 = InlineKeyboardButton(text=self.name_button['7'], callback_data='7')
+        self.b_2021 = InlineKeyboardButton(text=self.name_button['8'], callback_data='8')
+        self.b_2022 = InlineKeyboardButton(text=self.name_button['9'], callback_data='9')
+        self.b_2023 = InlineKeyboardButton(text=self.name_button['10'], callback_data='10')
         #self.kb.add(self.b_IMD).add(self.b_Forum).insert(self.b_CS)
         #self.keyboard.add(self.b_2021).add(self.b_2022).add(self.b_2023)
         self.keyboard.add(self.b_2020, self.b_2021, self.b_2022, self.b_2023)
     #
     # создаем кнопки меню третьего уровня
     def menu_3_level(self):
-        self.b_menu_3 = InlineKeyboardButton(text=self.name_button['8'], callback_data='8')
+        self.b_menu_3 = InlineKeyboardButton(text=self.name_button['20'], callback_data='20')
         #self.kb.add(self.b_IMD).add(self.b_Forum).insert(self.b_CS)
         #self.keyboard.add(self.b_2021).add(self.b_2022).add(self.b_2023)
         self.keyboard.add(self.b_menu_3)

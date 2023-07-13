@@ -1,7 +1,7 @@
 from sqlalchemy import MetaData, Table, create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
-from table_db import table
+from data_base.table_db import table
 import os, sys
 from bot_env.mod_log import Logger
 
@@ -27,7 +27,7 @@ class BaseDB:
         self.db_file = os.path.join(sys.path[0], 'db_storage', db_file)
         self._create_db_directory() # создаем директорию для БД, если такой папки нет
         # формируем путь к лог файлу 'sqlalchemy'
-        self.log_path = os.path.join(self.logger.log_path, 'sqlalchemy')
+        self.log_path = os.path.join(self.Logger.log_path, 'sqlalchemy')
         # создаем url БД
         self.db_url = f'sqlite+pysqlite:///{self.db_file}'
         # создаем объект engine для связи с БД
@@ -69,7 +69,7 @@ class BaseDB:
                 self.Logger.log_info(f'[BaseDB: add_data] Data added successfully!\n{str(data_bot)}')   
         except SQLAlchemyError as eR:
             print("Error occurred:", str(eR))
-            self.ogger.log_info(f'[BaseDB; add_data] error: {str(eR)}')   
+            self.Logger.log_info(f'[BaseDB; add_data] error: {str(eR)}')   
             session.rollback()
 
     # Выборка данных из таблицы
