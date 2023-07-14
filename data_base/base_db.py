@@ -60,18 +60,38 @@ class BaseDB:
 
     # добавляем данные в таблицу
     # data_bot = {'url_video_y2b': 'https://example.com', 'id_user': 'user1', 'id_chat': 'chat1'}
-    def insert_data(self, data_bot: dict):
+    def insert_data(self, data4db: dict):
         #
         try:
             with self.Session() as session:
-                session.execute(self.table.insert().values(**data_bot))
+                session.execute(self.table.insert().values(**data4db))
                 session.commit()
-                print(f'[BaseDB: insert_data] Data insert successfully! \nInsert data: {str(data_bot)}')
-                self.Logger.log_info(f'[BaseDB: add_data] Data added successfully!\n{str(data_bot)}')   
+                print(f'[BaseDB: insert_data] Data insert successfully! \nInsert data: {str(data4db)}')
+                self.Logger.log_info(f'[BaseDB: insert_data] Data added successfully!\n{str(data4db)}')   
         except SQLAlchemyError as eR:
             print("Error occurred:", str(eR))
-            self.Logger.log_info(f'[BaseDB; add_data] error: {str(eR)}')   
+            self.Logger.log_info(f'[BaseDB: insert_data] ERROR: {str(eR)}')   
             session.rollback()
+
+    # выводим данные таблицы
+    def print_data(self):
+        #
+        try:
+            with self.Session() as session:
+                results = session.query(self.table).all()
+                for row in results:
+                    print(f'\n{row}')
+                # session.execute(self.table.insert().values(**data_bot))
+                # session.commit()
+                #print(f'[BaseDB: insert_data] Data insert successfully! \nInsert data: {str(data_bot)}')
+                #self.Logger.log_info(f'[BaseDB: add_data] Data added successfully!\n{str(data_bot)}')   
+        except SQLAlchemyError as eR:
+            print("Error occurred:", str(eR))
+            self.Logger.log_info(f'[BaseDB: print_data] ERROR: {str(eR)}')   
+            session.rollback()
+
+
+
 
     # Выборка данных из таблицы
     # def select_data(self):

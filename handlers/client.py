@@ -37,7 +37,7 @@ class Client:
         self.date_message=''
         self.user_id=''
         self.chat_id=''
-        self.description = None
+        #self.description = None
         self.video_url = None
         self.channel_title = None # 
         self.default_audio_language = None
@@ -128,8 +128,8 @@ class Client:
     async def call_my_video(self, callback: types.CallbackQuery):
         kb = KeyBoardClient(row_width=1)
         kb.menu_2_level() # загружаем меню второго уровня
-        self.Logger.log_info(f'[call_1_level_2] choice_user: {callback.data} = {kb.name_button[callback.data]}')
-        self.Logger.log_info(f'[call_1_level_2] kb.countInstance: {kb.countInstance}')
+        self.Logger.log_info(f'[call_my_video] choice_user: {callback.data} = {kb.name_button[callback.data]}')
+        self.Logger.log_info(f'[call_my_video] kb.countInstance: {kb.countInstance}')
         # получаем из словаря наименования кнопок name_button[callback.data] 
         # название раздела
         await callback.message.answer(text=f'Выбран раздел: {kb.name_button[callback.data]}',
@@ -166,7 +166,7 @@ class Client:
         self.diction4db={
             'url_video_y2b' : self.video_url,
             'video_id' : self.video_id,
-            'description' : self.description,
+            #'description' : self.description,
             'channel_title' : self.channel_title,
             'video_title' : self.video_title,
             'video_duration' : self.video_duration,
@@ -178,21 +178,17 @@ class Client:
         #
         # спрашиваем подтверждение ссылки youtube
         if self.youtube_info:
-            #
             # добавляем кнопки ОК & NO для youtube_link_handler
             kb = KeyBoardClient(row_width=1)
             kb.button_OK_NO_youtube_link() 
-            self.Logger.log_info(f'[youtube_link_handler] kb.countInstance: {kb.countInstance}')
             # отвечаем пользователю на введенную ссылку YouTube 
             # отправляем клавиатуру подтверждения 
-            mes4user=f'{self.date_message} Вы ввели ссылку на видео с названием: *{self.video_title}* на канале *{self.channel_title}*'
-            await bot.send_message(
-                message.from_user.id,
-                mes4user, 
-                reply_markup=kb.keyboard,
-                                    )
+            mes4user=f'{self.date_message} Вы ввели ссылку на видео с названием: [*{self.video_title}*] на канале [*{self.channel_title}*]'
+            self.Logger.log_info(mes4user)
+            await bot.send_message(message.from_user.id,
+                                   mes4user, 
+                                   reply_markup=kb.keyboard)
             # Устанавливаем состояние ожидания подтверждения
-            #confirmation = State()
             await self.confirmation.set()
         else: 
             print(f'[youtube_link_handler] There are empty fields in table\n diction4db: {str(self.diction4db)}')
@@ -202,15 +198,13 @@ class Client:
             kb.button_OK_NO_youtube_link_bad() 
             self.Logger.log_info(f'[youtube_link_handler] kb.countInstance: {kb.countInstance}')
             
-            mes4user=f'{self.date_message} Вы ввели ошибочную ссылкуна видео с названием: {self.video_title} на канале {self.channel_title} \nБудете вводить другую ссылку?'
+            mes4user=f'{self.date_message} Вы ввели ошибочную ссылку на видео с названием: [*{self.video_title}*] на канале [*{self.channel_title}*] \nБудете вводить другую ссылку?'
             await bot.send_message(
                 message.from_user.id,
                 mes4user, 
-                #f'Вы ввели ссылку Будем уникализировать фрагмент видео из youtube или свое видео?\nНажмите на соответствующую кнопку',
                 reply_markup=kb.keyboard)
             #
             # Устанавливаем состояние ожидания подтверждения
-            #confirmation = State()
             await self.confirmation.set()
         #
     # обрабатываем нажатие кнопки ОК #3 youtube_link 
@@ -218,10 +212,12 @@ class Client:
         #
         # создаем и передаем словарь значений в БД
         db=BaseDB(logger=self.Logger)
-        db.insert_data(data_bot=self.diction4db)
+        db.insert_data(data4db=self.diction4db)
+        db.print_data()
         #
-        self.Logger.log_info(f'[youtube_link_in_BD] Поймали: {callback.data} - Записали в БД')
-        await callback.message.answer(text=f'[youtube_link_in_BD] Поймали: {callback.data} - Записали в БД')
+        mes4user=f'{callback.message.date} Бот взял в работу видео с названием: *[{self.video_title}]* размещенное на канале [*{self.channel_title}*]'
+        self.Logger.log_info(f'[youtube_link_in_work] {mes4user}')
+        await callback.message.answer(text=mes4user)
         # убираем часики на кнопке, которую нажали
         await callback.answer() # 
         # Сбрасываем состояние
@@ -229,21 +225,16 @@ class Client:
     #
     # обрабатываем нажатие кнопки #4 не та ссылка y2b -> start
     async def call_NO_link(self, callback: types.CallbackQuery, state: FSMContext):
-        self.Logger.log_info(f'[call_1_level_3] choice_user: {callback.data} ')
-        # await callback.message.answer(text=f'Выбран раздел: {kb.name_button[callback.data]}',
-        #                               reply_markup=kb.keyboard)
-        # Отправляем сообщение пользователю
-        await bot.send_message(chat_id=callback.message.chat.id, text='/start')
-        #await message.delete()
+        self.Logger.log_info(f'[call_NO_link] choice_user: {callback.data} ')
+        await callback.message.answer(text='Наберите команду /start или введите любой символ')
         # убираем часики на кнопке, которую нажали
-        #await callback.answer() 
-        # # 
+        await callback.answer() # 
         # Сбрасываем состояние
         await state.finish()
     #
     # обрабатываем нажатие кнопки #5 ОК - повторное введение ссылки 
     async def link_repetition(self, callback: types.CallbackQuery, state: FSMContext):
-        self.Logger.log_info(f'[call_2_level_4] choice_user: {callback.data} ')
+        self.Logger.log_info(f'[link_repetition] choice_user: {callback.data} ')
         # Отправляем сообщение пользователю
         #await bot.send_message(chat_id=callback.message.chat.id, text='/start')
         # убираем часики на кнопке, которую нажали
@@ -309,10 +300,10 @@ class Client:
         dp.register_callback_query_handler(self.call_my_video, Text(contains='2', ignore_case=True))
         #
         # обрабатывает ссылку youtube
-        #dp.register_message_handler(self.youtube_link_handler, Regexp(r'(https?://)?(www\.)?youtube\.[a-z]+/.*', flags=re.IGNORECASE))
-        #dp.register_message_handler(self.youtube_link_handler, Regexp(r'(https?://)?(www\.)?(youtube\.com/v/.*|youtu\.be/.*|youtube\.com/attribution_link.*|youtube\.com/results\?.*)', flags=re.IGNORECASE))
-        regexp_pattern = re.compile(r'(https?://)?(www\.)?(youtube\.com/v/.*|youtu\.be/.*|youtube\.com/attribution_link.*|youtube\.com/results\?.*)', re.IGNORECASE)
+        #regexp_pattern = re.compile(r'(https?://)?(www\.)?(youtube\.com/v/.*|youtu\.be/.*|youtube\.com/attribution_link.*|youtube\.com/results\?.*)', re.IGNORECASE)
+        regexp_pattern =  re.compile(r'(https?://)?(www\.)?(youtube\.com/(v|watch)\?.*|youtu\.be/.*|youtube\.com/attribution_link.*|youtube\.com/results\?.*)', re.IGNORECASE)
         dp.register_message_handler(self.youtube_link_handler, Regexp(regexp_pattern))
+        #
         # обрабатываем нажатие кнопки ОК #3 youtube_link 
         dp.register_callback_query_handler(self.youtube_link_in_work, Text(contains='3', ignore_case=True))
         
@@ -320,12 +311,12 @@ class Client:
         dp.register_callback_query_handler(self.call_NO_link, Text(contains='4', ignore_case=True))
         
         # обрабатываем нажатие кнопки #5 ОК - повторное введение ссылки 
-        dp.register_callback_query_handler(self.link_repetition, Text(contains='5', ignore_case=True))
+        #dp.register_callback_query_handler(self.link_repetition, Text(contains='5', ignore_case=True))
         
         # обрабатываем нажатие кнопки #6 NO - повторное введение ссылки 
-        dp.register_callback_query_handler(self.link_NO_repetition, Text(contains='6', ignore_case=True))
+        #dp.register_callback_query_handler(self.link_NO_repetition, Text(contains='6', ignore_case=True))
         
-        dp.register_callback_query_handler(self.call_2_level_7, Text(contains='7', ignore_case=True))
+        #dp.register_callback_query_handler(self.call_2_level_7, Text(contains='7', ignore_case=True))
         
         # должен быть последним хэндлером, 
         # ловит любые сообщения и вызывает кнопку старт
