@@ -28,6 +28,7 @@ class Client:
         self._new_client()
         #self._button_start() надо найти chat_id
         # словарь для создания и записи строки в БД про ссылку youtube
+        self.youtube_info=None
         self.youtube_link=''
         self.video_id=''
         self.video_title=''
@@ -36,6 +37,11 @@ class Client:
         self.date_message=''
         self.user_id=''
         self.chat_id=''
+        self.description = None
+        self.video_url = None
+        self.channel_title = None # 
+        self.default_audio_language = None
+        #
         self.diction4db={} 
         # Устанавливаем состояние ожидания подтверждения
         self.confirmation = State()
@@ -137,32 +143,41 @@ class Client:
         # Получаем ссылку на YouTube из сообщения
         self.youtube_link = message.text
         #
-        youtube_info=You2b(url=self.youtube_link, logger=self.Logger)
+        self.youtube_info=None
+        self.youtube_info=You2b(url=self.youtube_link, logger=self.Logger)
+        print(f'[youtube_link_handler] You2b: {self.youtube_info}')
         # обнуляем поля
-        self.video_id=self.video_title=self.video_duration=self.username=''
-        self.date_message=self.user_id=self.chat_id=''
+        #self.video_id=self.video_title=self.video_duration=self.username=''
+        #self.date_message=self.user_id=self.chat_id=self.description=self.video_url=''
         # заполняем поля
-        self.video_id=str(youtube_info.video_id)
-        self.video_title=str(youtube_info.video_title)
-        self.video_duration=str(youtube_info.video_duration)
+        self.video_url=str(self.youtube_info.video_url)
+        self.video_id=str(self.youtube_info.video_id)
+        self.description=str(self.youtube_info.description)
+        self.channel_title=str(self.youtube_info.channel_title)
+        self.video_title=str(self.youtube_info.video_title)
+        self.video_duration=str(self.youtube_info.duration_iso8601)
+        self.default_audio_language=str(self.youtube_info.default_audio_language)
         self.username=str(message.from_user.username)
         self.date_message=str(message.date)
         self.user_id=str(message.from_user.id)
-        self.chat_id=str(message.chat)
+        #self.chat_id=str(message.chat) # id совпадает с id from_user
+        #
         # формируем строку БД
         self.diction4db={
-            'url_video_y2b' : self.youtube_link,
-            'video_title' : self.video_title,
+            'url_video_y2b' : self.video_url,
             'video_id' : self.video_id,
+            'description' : self.description,
+            'channel_title' : self.channel_title,
+            'video_title' : self.video_title,
             'video_duration' : self.video_duration,
+            'default_audio_language' : self.default_audio_language,
             'username' : self.username,
             'date_message' : self.date_message,
             'user_id' : self.user_id,
-            'chat_id' : self.chat_id,
-                        } 
+                        }
         #
         # спрашиваем подтверждение ссылки youtube
-        if self.video_id and self.video_title and self.video_duration and self.username and self.date_message and self.user_id and self.chat_id:
+        if self.youtube_info:
             #
             # добавляем кнопки ОК & NO для youtube_link_handler
             kb = KeyBoardClient(row_width=1)
@@ -170,13 +185,12 @@ class Client:
             self.Logger.log_info(f'[youtube_link_handler] kb.countInstance: {kb.countInstance}')
             # отвечаем пользователю на введенную ссылку YouTube 
             # отправляем клавиатуру подтверждения 
-            mes4user=f'{self.date_message} {self.username} Вы ввели ссылку: title {self.video_title}, video_id: {self.video_id}, длительностью: {self.video_duration} '
+            mes4user=f'{self.date_message} Вы ввели ссылку на видео с названием: *{self.video_title}* на канале *{self.channel_title}*'
             await bot.send_message(
                 message.from_user.id,
                 mes4user, 
-                #f'Вы ввели ссылку Будем уникализировать фрагмент видео из youtube или свое видео?\nНажмите на соответствующую кнопку',
-                reply_markup=kb.keyboard)
-            #
+                reply_markup=kb.keyboard,
+                                    )
             # Устанавливаем состояние ожидания подтверждения
             #confirmation = State()
             await self.confirmation.set()
@@ -188,7 +202,7 @@ class Client:
             kb.button_OK_NO_youtube_link_bad() 
             self.Logger.log_info(f'[youtube_link_handler] kb.countInstance: {kb.countInstance}')
             
-            mes4user=f'{self.date_message} {self.username} Вы ввели ошибочную ссылку. title {self.video_title}, video_id: {self.video_id}, длительностью: {self.video_duration} \nПовторим ввод ссылки повторно?'
+            mes4user=f'{self.date_message} Вы ввели ошибочную ссылкуна видео с названием: {self.video_title} на канале {self.channel_title} \nБудете вводить другую ссылку?'
             await bot.send_message(
                 message.from_user.id,
                 mes4user, 

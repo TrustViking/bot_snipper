@@ -1,7 +1,7 @@
 from sqlalchemy import MetaData, Table, create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
-from data_base.table_db import table
+from data_base.table_db import metadata, table
 import os, sys
 from bot_env.mod_log import Logger
 
@@ -35,9 +35,10 @@ class BaseDB:
         # создаем объект Session 
         self.Session=sessionmaker(bind=self.engine)
         # Определение структуры таблицы
-        self.metadata = MetaData(bind=self.engine)
+        self.metadata = metadata
+        #self.metadata.bind = self.engine
         # Импорт параметров таблицы из другого модуля
-        self.table = table(metadata=self.metadata)
+        self.table = table
         # Создание таблицы в базе данных
         self._create_table()
 
@@ -52,8 +53,8 @@ class BaseDB:
     
     # Создание таблицы в базе данных
     def _create_table(self):
-        self.metadata.create_all()
-        print(f'[_create_table] engine.table_names: {self.engine.table_names()}')
+        self.metadata.create_all(bind=self.engine)
+        #print(f'[_create_table] engine.table_names: {self.engine.table_names()}')
         table = self.metadata.tables['snipper']
         print(table)
 

@@ -19,14 +19,23 @@ class You2b:
         self.countInstance=You2b.countInstance
         self.url=url
         self.Logger=logger
+        #
+        self.response=None
+        self.video_info = ''
+        self.description = ''
+        self.video_url = ''
+        self.channel_title = '' 
+        self.video_title = ''
+        self.default_audio_language = ''
+        self.duration_iso8601 = ''
+        #
         self.api_key=os.getenv('API_KEY')
         self._print_API_KEY()
-
+        #
         self.video_id=self._extract_video_id()
-        self.link_info=self.check_youtube_link()
-        self.video_title=self.link_info[1]
-        #self.video_duration=self.link_info[2]
-        self.video_duration=100
+        self._check_youtube_link()
+        self._print_fields() 
+        #
     #
     # проверка API_KEY
     def _print_API_KEY(self):
@@ -39,20 +48,22 @@ class You2b:
     # поиск идентификатора видео
     def _extract_video_id(self):
         # Паттерн для поиска идентификатора видео
-        #pattern = r'(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=|youtu\.be\/|[^#]*[?&]v=)([^&#?]{11}))'
-        #
         pattern = r'(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&]{11})'
 
         # Ищем совпадения с паттерном в ссылке
         match = re.search(pattern, self.url)
-
-        print(f'[extract_video_id] match.groups(): {str(match.groups())} - type[{type(match)}]')
-        self.Logger.log_info(f'[extract_video_id] match: {str(match)} - type[{type(match)}]')
+        #Return a list of all non-overlapping matches in the string
+        #match_all = re.findall(pattern, self.url)
+        #print(f'[extract_video_id] match.group(0): {str(match.group(0))}')
+        #self.Logger.log_info(f'[extract_video_id] match: {str(match_all)}')
+        # match.group(0): youtu.be/m0ZRms4p7fc
+        # match.group(1): m0ZRms4p7fc
         #
         video_id=None
         if match:
-            video_id = match.group(1)  # Получаем найденный video_id
-            print(f'[extract_video_id] video_id: {video_id}\ntype(video_id): {type(video_id)}')
+            # Получаем найденный video_id, type(video_id): <class 'str'>
+            video_id = match.group(1)  
+            print(f'[extract_video_id] video_id: {video_id}')
             self.Logger.log_info(f'[extract_video_id] video_id: {video_id}\ntype(video_id): {type(video_id)}')
             return video_id # Если video_id найден
         #
@@ -61,38 +72,58 @@ class You2b:
         return None  # Если video_id не найден
     # 
     # проверка ссылки ютуб
-    def check_youtube_link(self):
-        #video_id=self.extract_video_id(url)
+    def _check_youtube_link(self):
+        """
+        # При запросе информации о видео с использованием YouTube API v3 
+        # вы можете указать следующие части (part) для получения 
+        # различных типов данных:
+        # snippet: Информация о видео, включая заголовок, описание, канал, теги и т.д.
+        # contentDetails: Детали контента видео, такие как длительность, разрешение, формат и т.д.
+        # statistics: Статистика видео, включая количество просмотров, лайков, дизлайков и комментариев.
+        # status: Статус видео, такой как его приватность, доступность и т.д.
+        # topicDetails: Детали тематики видео, такие как связанные темы и региональные ограничения.
+        # recordingDetails: Детали записи видео, такие как дата и место съемки.
+        # fileDetails: Детали файла видео, такие как тип кодека и битрейт.
+        # liveStreamingDetails: Детали прямых трансляций видео, такие как расписание и состояние трансляции.
+        # player: Параметры плеера, такие как встроенные видеоигроки и параметры воспроизведения.
+        """
         # проверяем наличие идентификатора видео
         if not self.video_id:
             print(f'[check_youtube_link] video_id: [{self.video_id}] - return None')
             self.Logger.log_info(f'[check_youtube_link] video_id: [{self.video_id}] - return None')
             return None
-        #
+        # запрос информации с YouTube API
         youtube = build('youtube', 'v3', developerKey=self.api_key)
         try:
-            response = youtube.videos().list(part='snippet,contentDetails', id=self.video_id).execute()
-            if response['items']:
-                print(f'[check_youtube_link] response: {str(response)} - type[{type(response)}')
-                self.Logger.log_info(f'[check_youtube_link] response: {str(response)}')
+            self.response = youtube.videos().list(part='snippet, contentDetails', id=self.video_id).execute()
+            if not self.response['items']: 
+                print(f'[check_youtube_link] link: [{self.url}] response["items"] is None')
+                self.Logger.log_info(f'[check_youtube_link] link: [{self.url}] response["items"] is None')
+                return None
+            #
+            # Извлечение данных
+            self.video_info = self.response['items'][0]['snippet']
+            # берем только первые 100 знаков описания
+            end_description=1000
+            self.description = self.video_info['description'][:end_description] 
+            self.video_url = f'https://www.youtube.com/watch?v={self.video_id}'
+            self.channel_title = self.video_info['channelTitle']
+            self.video_title = self.video_info['title']
+            self.default_audio_language = self.video_info['defaultAudioLanguage']
+            self.duration_iso8601 = self.response['items'][0]['contentDetails']['duration']
                 #
-                video_info = response['items'][0]['snippet']
-                video_title = video_info['title']
-                #video_duration = video_info['duration']
-                #
-                print(f'[check_youtube_link] video_info: {str(video_info)}')
-                self.Logger.log_info(f'[check_youtube_link] video_info: {str(video_info)}')
-                #
-                print(f'[check_youtube_link] video_title: {str(video_title)}')
-                self.Logger.log_info(f'[check_youtube_link] video_title: {str(video_title)}')
-                #
-                # print(f'[check_youtube_link] video_duration: {str(video_duration)}')
-                # self.Logger.log_info(f'[check_youtube_link] video_duration: {str(video_duration)}')
-                #
-                # Другие необходимые данные о видео
-                return True, video_title
-            else:
-                return False, None, None
-        except HttpError as e:
-            return False, None, None
+        except HttpError as eR:
+            self.Logger.log_info(f'[check_youtube_link] error: {eR}')   
+            return None
+
+    # вывод полей
+    def _print_fields(self):
+        #print(f'[_print_fields] video_info: {str(self.video_info)} \ndescription: {str(self.description)}')
+        print(f'[_print_fields] video_url: {str(self.video_url)} ')
+        print(f'[_print_fields] channel_title: {str(self.channel_title)}')
+        print(f'[_print_fields] video_title: {str(self.video_title)} ')
+        print(f'[_print_fields] default_audio_language: {str(self.default_audio_language)}')
+        print(f'[_print_fields] duration_iso8601: {str(self.duration_iso8601)}')
+        #print(f'\n\n [_print_fields] response: {str(self.response)}\n\n')
+        #self.Logger.log_info(f'[check_youtube_link] response: {str(response)}')
 
