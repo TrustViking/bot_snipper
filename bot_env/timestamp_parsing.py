@@ -1,6 +1,7 @@
 import re
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta, time, date
+
+#from datetime.date import strftime
 from bot_env.mod_log import Logger
 
 
@@ -34,6 +35,7 @@ class ParseTime:
         self.time_iso8601=time_iso8601
         self.time_sec=time_sec
         self.seconds_duration=''
+        self.datatime_duration=None
         self.timestamp=timestamp
         self.timestamp_start=''
         self.timestamp_end=''
@@ -66,27 +68,29 @@ class ParseTime:
                 return None
         
         # Преобразуем строки времени в объекты datetime
-        start_time = datetime.strptime(self.timestamp_start, "%H:%M:%S")
-        end_time = datetime.strptime(self.timestamp_end, "%H:%M:%S") 
-        # Вычисляем разницу между временными метками
-        duration = end_time - start_time
+        start_time_dt = datetime.strptime(self.timestamp_start, "%H:%M:%S")
+        end_time_dt = datetime.strptime(self.timestamp_end, "%H:%M:%S") 
+        # Вычисляем разницу между временными метками, duration - тип timedelta
+        duration = end_time_dt - start_time_dt
         # Получаем продолжительность в секундах
         self.segment_duration = str(int(duration.total_seconds()))
         #       
-        return self.timestamp_start, self.timestamp_end, self.segment_duration
+        return self.timestamp_start, start_time_dt, self.timestamp_end, end_time_dt, self.segment_duration
     #
     # переводим длительность PT11H35M25S в секунды
-    def format_iso8601_sec(self, time_iso8601: str = None):
+    def format_iso8601_sec_dt(self, time_iso8601: str = None):
         """
-        Переводим длительность PT11H35M25S в секунды
-        return seconds_duration
+        Переводим длительность PT11H35M25S в секунды и объекты datetime
+        return seconds_duration, datatime_duration
         """
         if not self.time_iso8601 and time_iso8601: 
             self.time_iso8601=time_iso8601
         if not self.time_iso8601 and not time_iso8601: 
-            print(f'[format_iso8601_sec] Надо определить self.time_iso8601 или time_iso8601 \nself.time_iso8601: {self.time_iso8601} time_iso8601: {time_iso8601}')
+            print(f'[format_iso8601_sec_dt] Надо определить self.time_iso8601 или time_iso8601 \nself.time_iso8601: {self.time_iso8601} time_iso8601: {time_iso8601}')
             return None
-        h=m=s=''
+        h='00'
+        m='00'
+        s='00'
         hours=0
         minutes=0
         seconds=0
@@ -101,8 +105,11 @@ class ParseTime:
             s, iso8601 = iso8601.split('S', 1)
             seconds=int(s)
         self.seconds_duration=str(seconds+minutes*60+hours*60*60)
-        print(f'[format_iso8601_sec] seconds_duration: {self.seconds_duration}')
-        return self.seconds_duration
+        # datetime выдает 1900-01-01 00:03:00, не смотря на "%H:%M:%S"
+        self.datatime_duration=datetime.strptime(f'{h}:{m}:{s}', "%H:%M:%S")
+        print(f'[format_iso8601_sec_dt] seconds_duration: {self.seconds_duration}')
+        print(f'[format_iso8601_sec_dt] datatime_duration: {self.datatime_duration}')
+        return self.seconds_duration, self.datatime_duration
         #           
         #
     # переводим секунды в ММ:СС
@@ -116,8 +123,16 @@ class ParseTime:
         if not self.time_sec and not time_sec: 
             print(f'[format_sec2minuts] Надо определить self.time_sec или time_sec \nself.time_sec: {self.time_sec} time_sec: {time_sec}')
             return None
-        self.duration_minuts = str(timedelta(seconds=float(self.time_sec)))
+        #
+        # Преобразуем в объект timedelta
+        duration_timedelta = timedelta(seconds=float(self.time_sec))
+        # Создаем объект datetime с нулевой датой и временем равным интервалу
+        zero_datetime = datetime.min + duration_timedelta
+        #
+        # Форматируем объект datetime в строку с двумя нулями в начале
+        self.duration_minuts = zero_datetime.strftime("%H:%M:%S")        #self.duration_minuts = duration_timedelta.datetime.strftime("%H:%M:%S")
         print(f'[format_sec2minuts] duration_minuts {self.duration_minuts}')
+        #
         return self.duration_minuts
 
 

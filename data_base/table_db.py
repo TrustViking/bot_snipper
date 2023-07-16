@@ -1,4 +1,4 @@
-from sqlalchemy import MetaData, Table, Column, Integer, String
+from sqlalchemy import MetaData, Table, Column, Integer, String, DateTime
 
 metadata = MetaData() 
 name_table = 'snipper'
@@ -13,13 +13,16 @@ table = Table(
     Column("video_duration", String(50)),
     Column("video_duration_sec", String(50)),
     Column("duration_minuts", String(50)),
+    Column("datatime_duration", DateTime),
     Column("default_audio_language", String(20)),
     Column("username", String(50)),
     Column("date_message", String(50)),
     Column("user_id", String(50)),
     Column("segment_duration", String(15)),
     Column("timestamp_start", String(15)),
+    Column("timestamp_start_dt", DateTime),
     Column("timestamp_end", String(15)),
+    Column("timestamp_end_dt", DateTime),
             ) 
 
 

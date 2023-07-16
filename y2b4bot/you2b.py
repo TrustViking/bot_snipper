@@ -31,7 +31,7 @@ class You2b:
         self.duration_iso8601 = ''
         #
         self.api_key=os.getenv('API_KEY')
-        self._print_API_KEY()
+        #self._print_API_KEY()
         #
         self.video_id=self._extract_video_id()
         self._check_youtube_link()

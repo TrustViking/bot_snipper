@@ -19,10 +19,10 @@ class Telega:
         Telega.countInstance += 1
         self.countInstance = Telega.countInstance
         # Logger
-        self.logger = Logger(log_file=log_file, log_level=log_level)
+        self.Logger = Logger(log_file=log_file, log_level=log_level)
         self._print()
         # Client
-        self.client = Client(logger=self.logger)
+        self.client = Client(logger=self.Logger)
         self._client_work()
     #
     # выводим № объекта
@@ -37,13 +37,13 @@ class Telega:
             self.client.register_handlers_client()            
             #
         except Exception as eR:
-            self.logger.log_info(f'[main] error: {eR}')   
+            self.Logger.log_info(f'[main] error: {eR}')   
     #
 # MAIN **************************
 async def main(_):
     print(f'Бот вышел в онлайн')
     telega=Telega() # создаем объект и в нем регистрируем хэндлеры Клиента, 
-    telega.logger.log_info(f'\n[main] Создали объект Telega()')
+    telega.Logger.log_info(f'\n[main] Создали объект Telega()')
     print(f'[main] Создали объект Telega()')
 #
 if __name__ == "__main__":
