@@ -23,6 +23,7 @@ class BaseDB:
         BaseDB.countInstance+=1
         self.countInstance=BaseDB.countInstance
         self.Logger = logger
+        self._print()
         # создаем путь для БД
         self.db_file = os.path.join(sys.path[0], 'db_storage', db_file)
         self._create_db_directory() # создаем директорию для БД, если такой папки нет
@@ -41,7 +42,12 @@ class BaseDB:
         self.table = table
         # Создание таблицы в базе данных
         self._create_table()
-
+#
+    # выводим № объекта
+    def _print(self):
+        print(f'[BaseDB] countInstance: [{self.countInstance}]')
+        self.Logger.log_info(f'[BaseDB] countInstance: [{self.countInstance}]')
+#
     # создаем директорию для БД, если такой папки нет
     def _create_db_directory(self, path=None):
         if not path:

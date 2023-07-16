@@ -20,10 +20,17 @@ class Telega:
         self.countInstance = Telega.countInstance
         # Logger
         self.logger = Logger(log_file=log_file, log_level=log_level)
+        self._print()
         # Client
         self.client = Client(logger=self.logger)
         self._client_work()
     #
+    # выводим № объекта
+    def _print(self):
+        print(f'[Telega] countInstance: [{self.countInstance}]')
+        self.Logger.log_info(f'[Telega] countInstance: [{self.countInstance}]')
+#
+#
     def _client_work(self):
         try:
             #

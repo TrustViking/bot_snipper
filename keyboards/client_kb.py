@@ -1,4 +1,6 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove
+from bot_env.mod_log import Logger
+
 
 class KeyBoardClient:
     """
@@ -9,10 +11,15 @@ class KeyBoardClient:
     """
     countInstance=0
 
-    def __init__(self, row_width=3):
+    def __init__(self, 
+                 logger: Logger,
+                 row_width=3,
+                 ):
         KeyBoardClient.countInstance+=1
         self.countInstance=KeyBoardClient.countInstance
         self.row_width=row_width
+        self.Logger = logger
+        self._print()
         # # создаем клавиатуру
         self.keyboard = InlineKeyboardMarkup(row_width=self.row_width) 
         #
@@ -23,6 +30,8 @@ class KeyBoardClient:
         self.b_NO_y2b = None
         self.b_OK_y2b_bad = None
         self.b_NO_y2b_bad = None
+        self.b_OK_y2b_timestamp = None
+        self.b_NO_y2b_timestamp = None
         self.user_video = None
         self.b_2020 = None
         self.b_2021 = None
@@ -46,16 +55,21 @@ class KeyBoardClient:
         # menu OK/No link bad
         self.name_button['5']='OK'
         self.name_button['6']='NO'
+        # menu OK/No timestamp
+        self.name_button['7']='OK'
+        self.name_button['8']='NO'
         #
-        #
-        self.name_button['7']='2020'
-        self.name_button['8']='2021'
         self.name_button['9']='2022'
         self.name_button['10']='2023'
 
         self.name_button['20']='меню 3 уровня'
         print(f'[_make_name_button] создали клавиатуру № {self.countInstance}')
     #
+    # выводим № объекта
+    def _print(self):
+        print(f'[KeyBoardClient] countInstance: [{self.countInstance}]')
+        self.Logger.log_info(f'[KeyBoardClient] countInstance: [{self.countInstance}]')
+#
     # создаем кнопку старта, отправляет команду '/start'
     # используем, когда пользователь набирает любые символы, кроме '/start'
     def start_button(self): 
@@ -85,10 +99,17 @@ class KeyBoardClient:
         #self.kb.add(self.b_IMD).add(self.b_Forum).insert(self.b_CS)
         self.keyboard.row(self.b_OK_y2b_bad).row(self.b_NO_y2b_bad)
     #
+    # создаем кнопку ОК & NO для youtube_timestamp
+    def button_OK_NO_youtube_timestamp(self):
+        self.b_OK_y2b_timestamp = InlineKeyboardButton(text=self.name_button['7'], callback_data='7')
+        self.b_NO_y2b_timestamp = InlineKeyboardButton(text=self.name_button['8'], callback_data='8')
+        #self.kb.add(self.b_IMD).add(self.b_Forum).insert(self.b_CS)
+        self.keyboard.row(self.b_OK_y2b_timestamp).row(self.b_NO_y2b_timestamp)
+    #
     # создаем кнопки меню второго уровня
     def menu_2_level(self):
-        self.b_2020 = InlineKeyboardButton(text=self.name_button['7'], callback_data='7')
-        self.b_2021 = InlineKeyboardButton(text=self.name_button['8'], callback_data='8')
+        #self.b_2020 = InlineKeyboardButton(text=self.name_button['7'], callback_data='7')
+        #self.b_2021 = InlineKeyboardButton(text=self.name_button['8'], callback_data='8')
         self.b_2022 = InlineKeyboardButton(text=self.name_button['9'], callback_data='9')
         self.b_2023 = InlineKeyboardButton(text=self.name_button['10'], callback_data='10')
         #self.kb.add(self.b_IMD).add(self.b_Forum).insert(self.b_CS)

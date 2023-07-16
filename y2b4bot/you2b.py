@@ -19,10 +19,11 @@ class You2b:
         self.countInstance=You2b.countInstance
         self.url=url
         self.Logger=logger
+        self._print()
         #
         self.response=None
         self.video_info = ''
-        self.description = ''
+        #self.description = ''
         self.video_url = ''
         self.channel_title = '' 
         self.video_title = ''
@@ -37,6 +38,11 @@ class You2b:
         self._print_fields() 
         #
     #
+    # выводим № объекта
+    def _print(self):
+        print(f'[You2b] countInstance: [{self.countInstance}]')
+        self.Logger.log_info(f'[You2b] countInstance: [{self.countInstance}]')
+#
     # проверка API_KEY
     def _print_API_KEY(self):
         print(f'[_print_API_KEY] API_KEY: {self.api_key}')
@@ -61,7 +67,7 @@ class You2b:
         #
         video_id=None
         if match:
-            # Получаем найденный video_id, type(video_id): <class 'str'>
+            # Получаем найденный video_id, match.group(1): m0ZRms4p7fc, type(video_id): <class 'str'>
             video_id = match.group(1)  
             print(f'[extract_video_id] video_id: {video_id}')
             self.Logger.log_info(f'[extract_video_id] video_id: {video_id}\ntype(video_id): {type(video_id)}')
@@ -96,26 +102,38 @@ class You2b:
         youtube = build('youtube', 'v3', developerKey=self.api_key)
         try:
             self.response = youtube.videos().list(part='snippet, contentDetails', id=self.video_id).execute()
-            if not self.response['items']: 
-                print(f'[check_youtube_link] link: [{self.url}] response["items"] is None')
-                self.Logger.log_info(f'[check_youtube_link] link: [{self.url}] response["items"] is None')
-                return None
-            #
-            # Извлечение данных
-            self.video_info = self.response['items'][0]['snippet']
-            # берем только первые 100 знаков описания
-            end_description=1000
-            self.description = self.video_info['description'][:end_description] 
-            self.video_url = f'https://www.youtube.com/watch?v={self.video_id}'
-            self.channel_title = self.video_info['channelTitle']
-            self.video_title = self.video_info['title']
-            self.default_audio_language = self.video_info['defaultAudioLanguage']
-            self.duration_iso8601 = self.response['items'][0]['contentDetails']['duration']
-                #
         except HttpError as eR:
             self.Logger.log_info(f'[check_youtube_link] error: {eR}')   
             return None
-
+        #
+        if not self.response['items']: 
+            print(f'[check_youtube_link] link: [{self.url}] response["items"] is None')
+            self.Logger.log_info(f'[check_youtube_link] link: [{self.url}] response["items"] is None')
+            return None
+        #
+        # Извлечение данных
+        #self.video_info = self.response['items'][0]['snippet']
+        item=self.response.get('items', None)
+        # проверяем video_id
+        video_id=item[0].get('id', None)
+        if video_id != self.video_id: 
+            print(f'item[0].get("id") {video_id} != {self.video_id} self.video_id')
+            return None
+        #print(f'\nitem: {item}\n')
+        #print(f'\nitem[0]: {item[0]}\n')
+        self.video_info=item[0].get('snippet', None)
+        print(f'\nvideo_info: {self.video_info}\n')
+        # берем только первые 100 знаков описания
+        #end_description=1000
+        #self.description = self.video_info['description'][:end_description] 
+        self.video_url = f'https://www.youtube.com/watch?v={self.video_id}'
+        self.channel_title = self.video_info.get('channelTitle', None)
+        self.video_title = self.video_info.get('title', None)
+        self.default_audio_language = self.video_info.get('defaultAudioLanguage', None)
+        contentDetails=item[0].get('contentDetails', None)
+        if contentDetails:
+            self.duration_iso8601 = contentDetails.get('duration', None)
+        #self.duration_iso8601 = self.response['items'][0]['contentDetails']['duration']
     # вывод полей
     def _print_fields(self):
         #print(f'[_print_fields] video_info: {str(self.video_info)} \ndescription: {str(self.description)}')

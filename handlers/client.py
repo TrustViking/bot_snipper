@@ -8,6 +8,7 @@ import re
 #
 from bot_env.mod_log import Logger
 from bot_env.create_obj4bot import bot, dp
+from bot_env.timestamp_parsing import ParseTime
 from keyboards.client_kb import KeyBoardClient
 from y2b4bot.you2b import You2b
 from data_base.base_db import BaseDB
@@ -33,20 +34,29 @@ class Client:
         self.video_id=''
         self.video_title=''
         self.video_duration=''
+        self.video_duration_sec = ''
+        self.duration_minuts=''
         self.username=''
         self.date_message=''
         self.user_id=''
         self.chat_id=''
-        #self.description = None
         self.video_url = None
         self.channel_title = None # 
         self.default_audio_language = None
         #
         self.diction4db={} 
         # Устанавливаем состояние ожидания подтверждения
-        self.confirmation = State()
+        self.Confirmation = State()
+        # временные метки
+        #self.Pars_time=ParseTime(logger=self.Logger)
+        self.ParsTime= None
+        self.timestamp=''
+        self.timestamp_start=''
+        self.timestamp_end=''
+        self.segment_duration=''
         #
-    # кнопка-команда - /start
+        #
+    # New Client
     def _new_client(self):
         print(f'[_new_client] Client# {self.countInstance}')
         self.Logger.log_info(f'[_new_client] Client# {self.countInstance}')
@@ -137,7 +147,6 @@ class Client:
         # убираем часики на кнопке, которую нажали
         await callback.answer() # 
     #
-    #
     # обрабатывает ссылку youtube
     async def youtube_link_handler(self, message: types.Message): 
         # Получаем ссылку на YouTube из сообщения
@@ -145,14 +154,9 @@ class Client:
         #
         self.youtube_info=None
         self.youtube_info=You2b(url=self.youtube_link, logger=self.Logger)
-        print(f'[youtube_link_handler] You2b: {self.youtube_info}')
-        # обнуляем поля
-        #self.video_id=self.video_title=self.video_duration=self.username=''
-        #self.date_message=self.user_id=self.chat_id=self.description=self.video_url=''
         # заполняем поля
         self.video_url=str(self.youtube_info.video_url)
         self.video_id=str(self.youtube_info.video_id)
-        self.description=str(self.youtube_info.description)
         self.channel_title=str(self.youtube_info.channel_title)
         self.video_title=str(self.youtube_info.video_title)
         self.video_duration=str(self.youtube_info.duration_iso8601)
@@ -160,16 +164,20 @@ class Client:
         self.username=str(message.from_user.username)
         self.date_message=str(message.date)
         self.user_id=str(message.from_user.id)
-        #self.chat_id=str(message.chat) # id совпадает с id from_user
+        #
+        parsTime=ParseTime(logger=self.Logger)
+        self.video_duration_sec=parsTime.format_iso8601_sec(time_iso8601=self.video_duration)
+        self.duration_minuts=parsTime.format_sec2minuts(time_sec=self.video_duration_sec)
         #
         # формируем строку БД
         self.diction4db={
             'url_video_y2b' : self.video_url,
             'video_id' : self.video_id,
-            #'description' : self.description,
             'channel_title' : self.channel_title,
             'video_title' : self.video_title,
             'video_duration' : self.video_duration,
+            'video_duration_sec' : self.video_duration_sec,
+            'duration_minuts' : self.duration_minuts,
             'default_audio_language' : self.default_audio_language,
             'username' : self.username,
             'date_message' : self.date_message,
@@ -183,13 +191,13 @@ class Client:
             kb.button_OK_NO_youtube_link() 
             # отвечаем пользователю на введенную ссылку YouTube 
             # отправляем клавиатуру подтверждения 
-            mes4user=f'{self.date_message} Вы ввели ссылку на видео с названием: [*{self.video_title}*] на канале [*{self.channel_title}*]'
+            mes4user=f'Вы ввели ссылку на видео: \n[*{self.video_title}*] \nКанал: [*{self.channel_title}*] \nПродолжительность: {self.duration_minuts}'
             self.Logger.log_info(mes4user)
             await bot.send_message(message.from_user.id,
                                    mes4user, 
                                    reply_markup=kb.keyboard)
             # Устанавливаем состояние ожидания подтверждения
-            await self.confirmation.set()
+            await self.Confirmation.set()
         else: 
             print(f'[youtube_link_handler] There are empty fields in table\n diction4db: {str(self.diction4db)}')
             self.Logger.log_info(f'[youtube_link_handler] There are empty fields in table\n diction4db: {str(self.diction4db)}')
@@ -205,23 +213,73 @@ class Client:
                 reply_markup=kb.keyboard)
             #
             # Устанавливаем состояние ожидания подтверждения
-            await self.confirmation.set()
+            await self.Confirmation.set()
         #
     # обрабатываем нажатие кнопки ОК #3 youtube_link 
-    async def youtube_link_in_work(self, callback: types.CallbackQuery, state: FSMContext):
+    async def youtube_link_OK(self, callback: types.CallbackQuery, state: FSMContext):
         #
-        # создаем и передаем словарь значений в БД
-        db=BaseDB(logger=self.Logger)
-        db.insert_data(data4db=self.diction4db)
-        db.print_data()
-        #
-        mes4user=f'{callback.message.date} Бот взял в работу видео с названием: *[{self.video_title}]* размещенное на канале [*{self.channel_title}*]'
-        self.Logger.log_info(f'[youtube_link_in_work] {mes4user}')
+        mes4user=f'Введите временные метки фрагмента из видео: [*{self.video_title}*]. \nФормат временных меток начала и конца фрагмента: \n00:00:00-00:00:00, [значение: 00:00:00 -> ЧЧ:ММ:СС]'
+        #self.Logger.log_info(f'[youtube_link_OK] {mes4user}')
         await callback.message.answer(text=mes4user)
         # убираем часики на кнопке, которую нажали
         await callback.answer() # 
         # Сбрасываем состояние
         await state.finish()
+    #
+    # обрабатываем временные метки 00:00:00-00:00:00, 00:00:00 -> ЧЧ:ММ:СС 
+    async def youtube_timestamp(self, message: types.Message):
+        # 
+        self.timestamp = message.text
+        parsTime=ParseTime(logger=self.Logger)
+        self.timestamp_start, self.timestamp_end, self.segment_duration = parsTime.parse_time(timestamp=self.timestamp)
+        print(f'[youtube_timestamp] timestamp_start:  {self.timestamp_start}')
+        print(f'[youtube_timestamp] timestamp_end:    {self.timestamp_end}')
+        print(f'[youtube_timestamp] segment_duration: {self.segment_duration}')
+        print(f'[youtube_timestamp] video_duration_sec: {self.video_duration_sec}')
+        #
+        if int(self.segment_duration) >= int(self.video_duration_sec):
+            #print(f'[youtube_timestamp] segment_duration: {self.segment_duration} >= video_duration_sec: {self.video_duration_sec}')
+            mes4user=(f'[youtube_timestamp] segment_duration: {self.segment_duration} >= video_duration_sec: {self.video_duration_sec}. \nПришлите любое сообщение или команду /start')
+            print(mes4user)
+            self.Logger.log_info(mes4user)
+            await bot.send_message(message.from_user.id, mes4user) 
+            return None
+        #
+        # добавляем кнопки ОК & NO для подтверждения timestamp
+        kb = KeyBoardClient(row_width=1)
+        kb.button_OK_NO_youtube_timestamp() 
+        # отвечаем пользователю на введенные временные метки 
+        # отправляем клавиатуру подтверждения ОК & NO
+        mes4user=f'Вы передали временные метки фрагмента: \nНачало: [{self.timestamp_start}] \nОкончание: [{self.timestamp_end}] \nПродолжительность фрагмента: [{parsTime.format_sec2minuts(time_sec=self.segment_duration)}] \n\nВидео: [*{self.video_title}*] \nКанал: [*{self.channel_title}*] \n\nНажмите \U0001F447 кнопку ОК, если подтверждаете'
+        self.Logger.log_info(mes4user)
+        await bot.send_message(message.from_user.id,
+                                mes4user, 
+                                reply_markup=kb.keyboard)
+        # Устанавливаем состояние ожидания подтверждения
+        await self.Confirmation.set()
+    #
+    # обрабатываем нажатие кнопки ОК #7  timestamp
+    async def youtube_timestamp_OK(self, callback: types.CallbackQuery, state: FSMContext):
+        #
+        parsTime=ParseTime(logger=self.Logger)
+        mes4user=f'Вы подтвердили временные метки фрагмента: \nНачало: [{self.timestamp_start}] \nОкончание: [{self.timestamp_end}] \nПродолжительность фрагмента: [{parsTime.format_sec2minuts(time_sec=self.segment_duration)}] \n\nВидео: [*{self.video_title}*] \nКанал: [*{self.channel_title}*] \n\nБот взял в работу, результат в виде фрагмента или ссылки на него для скачивания, будет передана в этот чат'
+        #self.Logger.log_info(f'[youtube_link_OK] {mes4user}')
+        await callback.message.answer(text=mes4user)
+        # убираем часики на кнопке, которую нажали
+        #await callback.answer() # 
+        # Сбрасываем состояние
+        await state.finish()
+        #
+        # дописываем в строку временные метки для БД
+        #self.diction4db['video_duration_sec']=self.video_duration_sec
+        self.diction4db['timestamp_start']=self.timestamp_start
+        self.diction4db['timestamp_end']=self.timestamp_end
+        self.diction4db['segment_duration']=self.segment_duration
+        #
+        # создаем и передаем словарь значений в БД
+        db=BaseDB(logger=self.Logger)
+        db.insert_data(data4db=self.diction4db)
+        db.print_data()
     #
     # обрабатываем нажатие кнопки #4 не та ссылка y2b -> start
     async def call_NO_link(self, callback: types.CallbackQuery, state: FSMContext):
@@ -301,22 +359,28 @@ class Client:
         #
         # обрабатывает ссылку youtube
         #regexp_pattern = re.compile(r'(https?://)?(www\.)?(youtube\.com/v/.*|youtu\.be/.*|youtube\.com/attribution_link.*|youtube\.com/results\?.*)', re.IGNORECASE)
-        regexp_pattern =  re.compile(r'(https?://)?(www\.)?(youtube\.com/(v|watch)\?.*|youtu\.be/.*|youtube\.com/attribution_link.*|youtube\.com/results\?.*)', re.IGNORECASE)
-        dp.register_message_handler(self.youtube_link_handler, Regexp(regexp_pattern))
+        regexp_pattern_link_youtube =  re.compile(r'(https?://)?(www\.)?(youtube\.com/(v|watch)\?.*|youtu\.be/.*|youtube\.com/attribution_link.*|youtube\.com/results\?.*)', re.IGNORECASE)
+        dp.register_message_handler(self.youtube_link_handler, Regexp(regexp_pattern_link_youtube))
         #
         # обрабатываем нажатие кнопки ОК #3 youtube_link 
-        dp.register_callback_query_handler(self.youtube_link_in_work, Text(contains='3', ignore_case=True))
+        dp.register_callback_query_handler(self.youtube_link_OK, Text(contains='3', ignore_case=True))
         
         # обрабатываем нажатие кнопки #4 не та ссылка y2b -> start
         dp.register_callback_query_handler(self.call_NO_link, Text(contains='4', ignore_case=True))
+
+        # обрабатывает временные метки видео-фрагмента
+        #regexp_pattern = re.compile(r'(https?://)?(www\.)?(youtube\.com/v/.*|youtu\.be/.*|youtube\.com/attribution_link.*|youtube\.com/results\?.*)', re.IGNORECASE)
+        regexp_pattern_timestamp =  re.compile(r'^\d{2}:\d{2}:\d{2}-\d{2}:\d{2}:\d{2}$', re.IGNORECASE)
+        dp.register_message_handler(self.youtube_timestamp, Regexp(regexp_pattern_timestamp))
         
         # обрабатываем нажатие кнопки #5 ОК - повторное введение ссылки 
         #dp.register_callback_query_handler(self.link_repetition, Text(contains='5', ignore_case=True))
         
         # обрабатываем нажатие кнопки #6 NO - повторное введение ссылки 
         #dp.register_callback_query_handler(self.link_NO_repetition, Text(contains='6', ignore_case=True))
-        
-        #dp.register_callback_query_handler(self.call_2_level_7, Text(contains='7', ignore_case=True))
+        #
+        # обрабатываем нажатие кнопки ОК #7  timestamp
+        dp.register_callback_query_handler(self.youtube_timestamp_OK, Text(contains='7', ignore_case=True))
         
         # должен быть последним хэндлером, 
         # ловит любые сообщения и вызывает кнопку старт
