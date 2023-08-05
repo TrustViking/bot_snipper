@@ -13,7 +13,7 @@ class Telega:
     countInstance=0
     #
     def __init__(self, 
-                 log_file='main_log.txt', 
+                 log_file='telega_log.txt', 
                  log_level=logging.DEBUG,
                  ):
         Telega.countInstance += 1
@@ -41,10 +41,12 @@ class Telega:
     #
 # MAIN **************************
 async def main(_):
-    print(f'Бот вышел в онлайн')
+    print(f'\n**************************************************************************')
+    print(f'\nБот вышел в онлайн')
     telega=Telega() # создаем объект и в нем регистрируем хэндлеры Клиента, 
     telega.Logger.log_info(f'\n[main] Создали объект Telega()')
-    print(f'[main] Создали объект Telega()')
+    print(f'\n[main] Создали объект Telega()')
+    print(f'\n**************************************************************************')
 #
 if __name__ == "__main__":
     executor.start_polling(dp, skip_updates=True, on_startup=main)

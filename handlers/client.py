@@ -1,3 +1,4 @@
+from datetime import datetime
 from aiogram import types
 from aiogram.dispatcher.filters import Text, Command
 from aiogram.dispatcher.filters import Regexp
@@ -30,6 +31,7 @@ class Client:
         #self._button_start() надо найти chat_id
         # словарь для создания и записи строки в БД про ссылку youtube
         self.youtube_info=None
+        #self.task_time_dt=None
         self.youtube_link=''
         self.video_id=''
         self.video_title=''
@@ -160,6 +162,7 @@ class Client:
         self.youtube_info=None
         self.youtube_info=You2b(url=self.youtube_link, logger=self.Logger)
         # заполняем поля
+        #self.task_time_dt=datetime.now() # Получаем текущее время задачи
         self.video_url=str(self.youtube_info.video_url)
         self.video_id=str(self.youtube_info.video_id)
         self.channel_title=str(self.youtube_info.channel_title)
@@ -176,6 +179,7 @@ class Client:
         #
         # формируем строку БД
         self.diction4db={
+            #'task_time_dt' : self.task_time_dt,
             'url_video_y2b' : self.video_url,
             'video_id' : self.video_id,
             'channel_title' : self.channel_title,
@@ -205,7 +209,7 @@ class Client:
             # Устанавливаем состояние ожидания подтверждения
             await self.Confirmation.set()
         else: 
-            print(f'[youtube_link_handler] There are empty fields in table\n diction4db: {str(self.diction4db)}')
+            print(f'[youtube_link_handler] There are empty fields in table \ndiction4db: {str(self.diction4db)}')
             self.Logger.log_info(f'[youtube_link_handler] There are empty fields in table\n diction4db: {str(self.diction4db)}')
             # добавляем кнопки ОК & NO для youtube_link_handler
             kb = KeyBoardClient(logger=self.Logger, row_width=1)
@@ -293,11 +297,14 @@ class Client:
         self.diction4db['timestamp_end']=self.timestamp_end
         self.diction4db['timestamp_end_dt']=self.timestamp_end_dt
         self.diction4db['segment_duration']=self.segment_duration
+        # задача не проверялась на закачку исходника
+        self.diction4db['in_work_download']='no' 
+        
         #
         # создаем и передаем словарь значений в БД
         db=BaseDB(logger=self.Logger)
-        db.insert_data(data4db=self.diction4db)
-        db.print_data()
+        await db.insert_data(name_table='task', data4db=self.diction4db)
+        await db.print_data(name_table='task')
     #
     # обрабатываем нажатие кнопки #4 не та ссылка y2b -> start
     async def call_NO_link(self, callback: types.CallbackQuery, state: FSMContext):
