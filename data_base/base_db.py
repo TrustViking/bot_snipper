@@ -169,92 +169,17 @@ class BaseDB:
         # type: <class 'set'>
         return async_results
     # 
-    # # читаем ссылки из таблицы-задачи, которые 
-    # # надо проверить, скачивали мы ее ранее или нет, 
-    # async def choice_link4download(self, name_table: str):
-    #     '''
-    #     # Методы: type: <class 'sqlalchemy.engine.cursor.CursorResult'>
-    #     # fetchone(): Возвращает следующую строку результата запроса.
-    #     # fetchall(): Возвращает все строки результата запроса.
-    #     # fetchmany(size=None): Возвращает заданное количество строк результата запроса (по умолчанию размер указан в параметрах курсора).
-    #     # keys(): Возвращает список имен столбцов результата.
-    #     # close(): Закрывает результат (курсор).
-
-    #     # Атрибуты:
-    #     # rowcount: Возвращает количество строк, затронутых запросом.
-    #     # description: Список кортежей, представляющих описание столбцов результата. Каждый кортеж содержит информацию о столбце, такую как имя, тип и т.д.
-    #     # closed: Флаг, показывающий, закрыт ли результат.
-        
-    #     # Методы объектов <class 'sqlalchemy.engine.row.Row'>:
-    #     # items(): Возвращает пары ключ-значение для каждого столбца в строке.
-    #     # keys(): Возвращает имена столбцов в строке.
-    #     # values(): Возвращает значения столбцов в строке.
-    #     # get(key, default=None): Получение значения по имени столбца. Если столбец не существует, возвращается значение default.
-    #     # as_dict(): Возвращает строки в виде словаря, где ключи - это имена столбцов, а значения - значения столбцов.
-    #     # index(key): Возвращает позицию столбца с указанным именем в строке.
-        
-    #     # Атрибуты:
-    #     # keys(): Возвращает имена столбцов в строке.
-    #     # _fields: Атрибут, хранящий имена столбцов в строке.
-    #     # _data: Словарь, содержащий данные строки, где ключи - это имена столбцов, а значения - значения столбцов.
-    #     '''
-        
-    #     # выбираем из таблицы данные 
-    #     try:
-    #         # rows type: <class 'sqlalchemy.engine.cursor.CursorResult'>
-    #         cursor_result_no = await self.read_data_one(name_table=name_table,
-    #                                             column_name='in_work_download', 
-    #                                             params_status='no')
-    #     except SQLAlchemyError as eR:
-    #         print(f'\nERROR [BaseDB: choice_link4download] ERROR: {str(eR)}')
-    #         self.Logger.log_info(f'\nERROR [BaseDB: choice_link4download] ERROR: {str(eR)}')
-    #         return None
-    #     if not cursor_result_no: 
-    #         print(f'\n[BaseDB choice_link4download] cursor_result_no is NONE')
-    #         return None
-    #     # вытаскиваем результаты запроса к БД
-    #     # список объектов <class 'sqlalchemy.engine.row.Row'>
-    #     rows_no=[]
-    #     rows_no=cursor_result_no.fetchall()
-    #     print(f'\n[BaseDB: choice_link4download] rows_no: {rows_no}, \ntype: {type(rows_no)} ')
-    #     for row in rows_no:
-    #         # вытаскиваем значения video_id и добавляем в множество unique_video_ids_no - set()
-    #         print(f'\n[BaseDB: choice_link4download] row: \n{row}, \ntype row: {type(row)}, \n{dir(rows_no)}')
-    #         video_id_no=row.video_id
-    #         print(f'\n[BaseDB: choice_link4download] video_id_no: \n{video_id_no}, \ntype video_id_no: {type(video_id_no)}')
-    #         self.unique_video_ids_no.add(video_id_no)
-            
-            
-    #         try:
-    #             cursor_result_yes = await self.read_data_two(name_table=name_table,
-    #                                                 one_column_name='in_work_download', 
-    #                                                 one_params_status='yes',
-    #                                                 two_column_name='video_id', 
-    #                                                 two_params_status=video_id_no)
-    #         except SQLAlchemyError as eR:
-    #             print(f'\nERROR [BaseDB: choice_link4download read_data_two] ERROR: {str(eR)}')
-    #             self.Logger.log_info(f'\nERROR [BaseDB: choice_link4download read_data_two] ERROR: {str(eR)}')
-    #             return None
-    #     if not cursor_result_yes: 
-    #         print(f'\n[BaseDB choice_link4download] cursor_result_yes is NONE')
-    #         return None
-    #     # вытаскиваем результаты запроса к БД
-    #     # список объектов <class 'sqlalchemy.engine.row.Row'>
-    #     rows_yes=[]
-    #     rows_yes=cursor_result_yes.fetchall()
-    #     print(f'\n[BaseDB: choice_link4download] rows_yes: {rows_yes}, \ntype: {type(rows_yes)} ')
-    #     for row in rows_yes:
-    #         # вытаскиваем значения video_id и добавляем в множество unique_video_ids_no - set()
-    #         print(f'\n[BaseDB: choice_link4download] table: {name_table} row: \n{row}, \ntype row: {type(row)}')
-    #         video_id_yes=row.video_id
-    #         print(f'\n[BaseDB: choice_link4download] table: {name_table} video_id_yes: \n{video_id_yes}, \ntype video_id_no: {type(video_id_yes)}')
-    #         self.unique_video_ids_yes.add(video_id_yes)
-
-    #     # оставляем только множество для закачки
-    #     video_ids_download = self.unique_video_ids_no - self.unique_video_ids_yes
-    #     print(f'\n[BaseDB: choice_link4download] video_ids_download: \n{video_ids_download}, \ntype video_ids_download: {type(video_ids_download)}, \n{dir(video_ids_download)}')
-    #     # ОШИБКА наверное тут - возврат вместо корутины множества
-    #     return video_ids_download
+    # получаем все данные таблицы
+    async def data_table(self, name_table: str):
+        table=self.table.get(name_table)
+        try:
+            async with self.Session() as session:
+                async_results = await session.execute(select(table))
+        except SQLAlchemyError as eR:
+            print(f'\nERROR [BaseDB: data_table] ERROR: {str(eR)}')
+            self.Logger.log_info(f'[BaseDB: data_table] ERROR: {str(eR)}')
+            session.rollback()
+        return async_results
     #
     # Выводим все данные таблицы
     async def print_data(self, name_table: str):
