@@ -1,7 +1,7 @@
 from sqlalchemy import MetaData, Table, Column, Integer, String, DateTime, func
 from datetime import datetime
 
-metadata = MetaData() 
+metadata = MetaData()
 #
 name_table_task = 'task'
 table_task = Table(
@@ -61,8 +61,8 @@ table_download = Table(
     # Column("start2work", DateTime, default=func.current_timestamp()), 
     # Column("end2work", DateTime, default=func.current_timestamp()), 
     # Column("duratiion_work", DateTime, default=func.current_timestamp()), 
-    Column("worked_link", String(15)),
-    Column("url_download_video", String(150)),
+    Column("worked_link", String(15)), # No, YES
+    Column("path_download", String(150)),
             ) 
 
 

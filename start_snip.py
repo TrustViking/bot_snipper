@@ -72,7 +72,7 @@ async def main():
         os.path.join(sys.path[0], 'bot_dnld.py'),
     ]
     #
-    print(f'Старт приложения...')
+    print(f'\nСтарт приложения...')
     print(f'\n==============================================================================\n')
     print(f'File: [{os.path.basename(sys.argv[0])}]')
     print(f'Path: [{sys.path[0]}]') 
