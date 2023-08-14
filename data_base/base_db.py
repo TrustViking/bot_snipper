@@ -52,12 +52,6 @@ class BaseDB:
         self.metadata = metadata
         # Импорт параметров таблицы из другого модуля
         self.table = tables
-        # Создание таблицы в базе данных
-        #await self._create_table()
-        #asyncio.get_event_loop().run_until_complete(self._create_table())
-        # формируем пустые множества
-        # self.unique_video_ids_yes = set()
-        # self.unique_video_ids_no = set()
 #
     # выводим № объекта
     def _print(self):
@@ -153,10 +147,27 @@ class BaseDB:
             # await session.rollback()
             return None
     #
-    # записываем отметку о закачке файла в таблицу download_link
-    # Находим все строки с vid и записываем в 'worked_link': 'yes'
-    async def update_worked_link(self, vid: str, diction: dict):
+    # Находим в таблице 'download_link' строки с vid и записываем словарь значений
+    async def update_dnld_link(self, vid: str, diction: dict):
         table=self.table.get('download_link')
+        # Находим все строки с vid и записываем словарь значений
+        try:
+            async with self.Session() as session:
+                stmt = (update(table).
+                        where(table.c.video_id == vid).
+                        values(diction))
+                await session.execute(stmt)
+                await session.commit()
+                return vid, diction
+        except SQLAlchemyError as eR:
+            print(f'\nERROR [BaseDB: update_dnld_link] ERROR: {str(eR)}')
+            self.Logger.log_info(f'\nERROR [BaseDB: update_dnld_link] ERROR: {str(eR)}')
+            await session.rollback()
+            return None
+
+    # Находим в таблице 'task' строки с vid и записываем словарь значений
+    async def update_task(self, vid: str, diction: dict):
+        table=self.table.get('task')
         # Находим все строки с vid и записываем в 'worked_link': 'yes'
         try:
             async with self.Session() as session:
@@ -167,10 +178,12 @@ class BaseDB:
                 await session.commit()
                 return vid, diction
         except SQLAlchemyError as eR:
-            print(f'\nERROR [BaseDB: update_worked_link] ERROR: {str(eR)}')
-            self.Logger.log_info(f'\nERROR [BaseDB: update_worked_link] ERROR: {str(eR)}')
+            print(f'\nERROR [BaseDB: update_task] ERROR: {str(eR)}')
+            self.Logger.log_info(f'\nERROR [BaseDB: update_task] ERROR: {str(eR)}')
             await session.rollback()
             return None
+
+
 
     # получаем все данные таблицы
     async def data_table(self, name_table: str):

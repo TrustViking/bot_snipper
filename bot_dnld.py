@@ -119,9 +119,9 @@ class Dnld:
         #print(f'\n[Dnld: videoid_dnld] rows: {rows}, \ntype: {type(rows)} ')
         for row in rows:
             # вытаскиваем значения video_id и добавляем в множество unique_video_ids_no - set()
-            print(f'\n[Dnld: videoid_dnld] row: {row}, type row: {type(row)}')
+            #print(f'\n[Dnld: videoid_dnld] row: {row}, type row: {type(row)}')
             video_id=row.video_id
-            print(f'\n[Dnld: videoid_dnld] video_id: \n{video_id}, \ntype video_id: {type(video_id)}')
+            #print(f'\n[Dnld: videoid_dnld] video_id: \n{video_id}, \ntype video_id: {type(video_id)}')
             vid_dnld.add(video_id)
 
         return vid_dnld
@@ -146,9 +146,9 @@ class Dnld:
         rows=cursor_result.fetchall()
         for row in rows:
             # вытаскиваем значения video_id 
-            print(f'\n[Dnld: videoid4dnld] row: {row}, type row: {type(row)}')
+            #print(f'\n[Dnld: videoid4dnld] row: {row}, type row: {type(row)}')
             video_id=row.video_id
-            print(f'\n[Dnld: videoid4dnld] video_id: \n{video_id}, \ntype video_id: {type(video_id)}')
+            #print(f'\n[Dnld: videoid4dnld] video_id: \n{video_id}, \ntype video_id: {type(video_id)}')
             vid4dnld.add(video_id)
 
         return vid4dnld
@@ -284,19 +284,23 @@ class Dnld:
         self.downloaded_file_path=os.path.dirname(path_save_video)
         return self.downloaded_file_path, vid
     #    
-    # проверяем скачал ли run_dlp файл и записываем в БД
+    # проверяем скачал ли run_dlp файл и отмечаем в task и download_link 
     async def dnld_file(self, path: str, vid: str):
         list_file_dir=[(vid, fname) for fname in os.listdir(path) if vid in fname]
         if not list_file_dir:
             print(f'[Dnld dnld_file] list_file_dir: is {list_file_dir} \nFile: {vid} not dowload')
             return None
         print(f'[Dnld dnld_file] Video_id {vid} download name: {list_file_dir[0][1]}')
-        # файл закачали на диск, поэтому записываем отметку в таблицу download_link
-        # Находим все строки с vid и записываем в 'worked_link': 'yes' и 'path_download': full_path
-        diction={'worked_link': 'yes', 'path_download': str(os.path.join(path, list_file_dir[0][1]))}
-        # result_update = await self.Db.update_worked_link(vid, diction)
-        if not await self.Db.update_worked_link(vid, diction):
+
+        # Находим в таблице 'download_link' строки с vid и записываем словарь значений
+        diction_dnld={'worked_link': 'yes', 'path_download': str(os.path.join(path, list_file_dir[0][1]))}
+        if not await self.Db.update_dnld_link(vid, diction_dnld):
             print(f'\nERROR [Dnld dnld_file] обновить [worked_link: yes] не получилось')
+            return None
+        # Находим в таблице 'task' строки с vid и записываем словарь значений
+        diction_task={'in_work_download': 'yes'}
+        if not await self.Db.update_task(vid, diction_task):
+            print(f'\nERROR [Dnld dnld_file] обновить [in_work_download: yes] не получилось')
             return None
         else: return vid, list_file_dir[0][1]
     #
@@ -335,8 +339,13 @@ class Dnld:
         # вносим изменения в download_link, ссылки, которые по факту не закачаны
         diction={'worked_link': 'no', 'path_download': 'no'}
         for vid in set_vid4dnld:
-            if not await self.Db.update_worked_link(vid, diction):
+            if not await self.Db.update_dnld_link(vid, diction):
                 print(f'\nERROR [Dnld check_dnld_file] обновить {vid} не получилось')
+        # Находим в таблице 'task' строки с vid и записываем словарь значений
+        diction_task={'in_work_download': 'no'}
+        if not await self.Db.update_task(vid, diction_task):
+            print(f'\nERROR [Dnld check_dnld_file] обновить [in_work_download: no] не получилось')
+            return None
         return set_vid4dnld
 
     # удаляем временные файлы после скачивания dlp
