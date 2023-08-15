@@ -34,8 +34,6 @@ class BaseDB:
         self._print()
         # создаем путь для БД
         self.db_file = os.path.join(sys.path[0], 'db_storage', db_file)
-        # создаем директорию для БД, если такой папки нет
-        #self._create_db_directory() 
         # формируем путь к лог файлу 'sqlalchemy'
         self.log_path = os.path.join(self.Logger.log_path, 'sqlalchemy')
         self.rows=None
@@ -43,10 +41,8 @@ class BaseDB:
         # self.db_url = f'sqlite+pysqlite:///{self.db_file}'
         self.db_url = f'sqlite+aiosqlite:///{self.db_file}'
         # создаем объект engine для связи с БД
-        # self.engine = create_engine(self.db_url, logging_name=self.log_path)
         self.engine = create_async_engine(self.db_url, logging_name=self.log_path)
         # Создаем асинхронный объект Session 
-        #self.Session=sessionmaker(bind=self.engine)
         self.Session = async_sessionmaker(self.engine, expire_on_commit=False, class_=AsyncSession)
         # Определение структуры таблицы из другого модуля
         self.metadata = metadata
@@ -125,31 +121,28 @@ class BaseDB:
                             two_params_status: str,
                             ):
         table=self.table.get(name_table)
-        print(f'\n[BaseDB read_data_two] table: {name_table}, type: {type(table)}')
+        #print(f'\n[BaseDB read_data_two] table: {name_table}, type: {type(table)}')
         try:
             async with self.Session() as session:
                 # Формируем запрос с фильтром
                 text_filter=f'{one_column_name} = :status_one AND {two_column_name}=:status_two'
                 # Сортируем по порядковому номеру (предполагаем, что столбец id уникален)
                 async_results = await session.execute(
-                    select(table)
-                    .where(text(text_filter))
-                    .params(status_one=one_params_status, 
-                            status_two=two_params_status)
-                    .order_by(table.c.id))   
-            print(f'[BaseDB read_data_two] table: {name_table} async_results: {async_results}, type: {type({async_results})} ')
-            # async_results <sqlalchemy.engine.cursor.CursorResult object at 0x7f5c3abf1ea0>
-            # type: <class 'set'>
-            return async_results
+                                    select(table)
+                                    .where(text(text_filter))
+                                    .params(status_one=one_params_status, 
+                                            status_two=two_params_status)
+                                    .order_by(table.c.id))   
+                return async_results
         except SQLAlchemyError as eR:
             print(f'[BaseDB: read_data_two] ERROR: {str(eR)}')
             self.Logger.log_info(f'[BaseDB: read_data_two] ERROR: {str(eR)}')
             # await session.rollback()
             return None
     #
-    # Находим в таблице 'download_link' строки с vid и записываем словарь значений
-    async def update_dnld_link(self, vid: str, diction: dict):
-        table=self.table.get('download_link')
+    # Находим в таблице 'dnld_link', 'task' строки с vid и записываем словарь значений
+    async def update_table(self, name_table: str, vid: str, diction: dict):
+        table=self.table.get(name_table)
         # Находим все строки с vid и записываем словарь значений
         try:
             async with self.Session() as session:
@@ -160,29 +153,10 @@ class BaseDB:
                 await session.commit()
                 return vid, diction
         except SQLAlchemyError as eR:
-            print(f'\nERROR [BaseDB: update_dnld_link] ERROR: {str(eR)}')
-            self.Logger.log_info(f'\nERROR [BaseDB: update_dnld_link] ERROR: {str(eR)}')
+            print(f'\nERROR [BaseDB: update_table] ERROR: {str(eR)}')
+            self.Logger.log_info(f'\nERROR [BaseDB: update_table] ERROR: {str(eR)}')
             await session.rollback()
             return None
-
-    # Находим в таблице 'task' строки с vid и записываем словарь значений
-    async def update_task(self, vid: str, diction: dict):
-        table=self.table.get('task')
-        # Находим все строки с vid и записываем в 'worked_link': 'yes'
-        try:
-            async with self.Session() as session:
-                stmt = (update(table).
-                        where(table.c.video_id == vid).
-                        values(diction))
-                await session.execute(stmt)
-                await session.commit()
-                return vid, diction
-        except SQLAlchemyError as eR:
-            print(f'\nERROR [BaseDB: update_task] ERROR: {str(eR)}')
-            self.Logger.log_info(f'\nERROR [BaseDB: update_task] ERROR: {str(eR)}')
-            await session.rollback()
-            return None
-
 
 
     # получаем все данные таблицы
@@ -213,12 +187,12 @@ class BaseDB:
         #     self.Logger.log_info(f'[BaseDB: print_data] ERROR: {str(eR)}')
         #     session.rollback()
     #
-    # записываем в таблице download_link путь закачки файла 
+    # записываем в таблице dnld_link путь закачки файла 
     # async def update_path_dnld(self,
     #                         vid: str,
     #                         new_value: str,
     #                         ):
-    #     table=self.table.get('download_link')
+    #     table=self.table.get('dnld_link')
     #     diction={'path_download': new_value}
     #     print(f'\n[BaseDB: update_path_dnld] diction: {diction}')
     #     # Находим все строки, где значение column_to_search равно value_to_search
@@ -236,9 +210,9 @@ class BaseDB:
     #         return None
     #     return new_value, vid
 
-    # записываем NO о закачке файла в таблицу download_link
+    # записываем NO о закачке файла в таблицу dnld_link
     # async def update_no_worked_link(self, vid: str):
-    #     table=self.table.get('download_link')
+    #     table=self.table.get('dnld_link')
     #     # Находим все строки, где значение column_to_search равно value_to_search
     #     try:
     #         async with self.Session() as session:

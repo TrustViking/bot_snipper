@@ -1,6 +1,6 @@
 #!/usr/bin/env python3 
 #
-
+from time import sleep, time
 from concurrent.futures import ThreadPoolExecutor
 import os, sys, asyncio, logging
 #
@@ -8,7 +8,7 @@ from bot_env.mod_log import Logger
 from data_base.base_db import BaseDB
 #
 from moviepy.editor import VideoFileClip
-from moviepy.editor import VideoFileClip, concatenate_videoclips, TextClip
+from moviepy.editor import VideoFileClip, concatenate_videoclips, TextClip 
 from moviepy.video.fx import all as vfx
 #
 #
@@ -27,9 +27,9 @@ class Mov:
         self.Logger = Logger(log_file=log_file, log_level=log_level)
         self.Db = BaseDB(logger=self.Logger)
         self.max_download = max_download
-        self.downloaded_file_path = os.path.join(sys.path[0], 'video_frag')
-        self._print()
+        self.save_file_path = os.path.join(sys.path[0], 'video_frag')
         self._create_mov_dir()
+        self._print()
         
     #
     # выводим № объекта
@@ -43,50 +43,189 @@ class Mov:
         Создает директорию для хранения скачанных видеофайлов, 
         если она не существует
         """
-        if not os.path.exists(self.downloaded_file_path):
-            os.makedirs(self.downloaded_file_path)
+        if not os.path.exists(self.save_file_path):
+            os.makedirs(self.save_file_path)
     #
-    # вырезаем фрагмент по временным меткам ext='.mp4'
-    def make_frag (self, path_file: str, 
+
+    # создаем (дополняем) таблицу frag на базе task
+    async def insert_frag (self):
+        # отбираем скачанные, но не отработанные ссылки в таблице 'task'
+        try:
+            async_results = await self.Db.read_data_two( 
+                            name_table = 'task',  
+                            one_column_name = 'in_work_download', 
+                            one_params_status = 'downloaded',
+                            two_column_name = 'in_work_frag', 
+                            two_params_status = 'not_frag',
+                                                    )
+        except Exception as eR:
+            print(f'\nERROR[Mov insert_frag read_data_two task] ERROR: {eR}') 
+            self.Logger.log_info(f'\nERROR[Mov insert_frag read_data_two] ERROR: {eR}') 
+            return None
+        # список объектов <class 'sqlalchemy.engine.row.Row'>
+        rows=async_results.fetchall()
+        if not rows: 
+            print(f'\n[Mov: insert_frag] В таблице [task] нет ссылок для фрагментации')
+            return None
+        # делаем список кортежей date_message и uid
+        date_message_uid = [(row.date_message, row.user_id, row) for row in rows]
+        data=[] # список записанных строчек в таблицу frag
+        for date_message, user_id, row in date_message_uid:
+            print(f'\n[Mov: insert_frag] проверяем в таблице [frag] date_message: {date_message} user_id: {user_id}')
+            try:
+                async_results_table = await self.Db.read_data_two ( 
+                            name_table='frag', 
+                            one_column_name='date_message', 
+                            one_params_status=date_message,
+                            two_column_name='user_id', 
+                            two_params_status=user_id,
+                            )
+            except Exception as eR:
+                print(f'\nERROR[Mov insert_frag read_data_two frag] ERROR: {eR}') 
+                self.Logger.log_info(f'\nERROR[Mov insert_frag read_data_two frag] ERROR: {eR}') 
+                return None
+            rows_table=async_results_table.fetchall()
+            if rows_table and len(rows_table):
+                print(f'\n[Mov: insert_frag] В таблице [frag] повторяется задача: {rows_table}')
+                continue
+            # video_id (скачанные и не фрагментированные) -> в таблицу frag
+            diction = {
+                        'date_message': row.date_message,
+                        'username': row.username,
+                        'user_id': row.user_id,
+                        'time_task': int(time()), 
+                        'url_video_y2b': row.url_video_y2b,
+                        'video_id': row.video_id,
+                        'timestamp_start': row.timestamp_start,
+                        'timestamp_end': row.timestamp_end,
+                        'in_work_download': row.in_work_download,
+                        'path_download': row.path_download,
+                        'in_work_frag': 'not_frag',
+                        'name_frag': row.video_id+'_'+str(int(time())),
+                        'path_frag': 'not_frag',
+                        }
+            # записываем в таблицу frag новые задачи
+            try:
+                if not await self.Db.insert_data('frag', diction):
+                    print(f'\n[Mov: insert_frag] в таблицу [frag] не получилось записать данные: {diction}')
+                    continue
+            except Exception as eR:
+                print(f'\nERROR[Mov insert_frag insert_data] ERROR: {eR}') 
+                self.Logger.log_info(f'\nERROR[Mov insert_frag insert_data] ERROR: {eR}') 
+                return None
+            data.append(diction)
+            #
+        return data
+
+    # вырезаем фрагмент по временным меткам в формате строки "чч:мм:сс" '01:03:05.35'
+    def make_frag_time (self, path_file: str, 
                         t_start: str, 
-                        t_end: str,
-                        file_name: str,
-                        ext='.mp4'):
-        #
-        # Обрезка видео по временным меткам
-        clip = VideoFileClip(filename=path_file).subclip(t_start, t_end)
-        print(f'[Mov make_frag] clip: {type(clip)}') 
+                        t_end: str):
+        start=t_start+'.00'
+        end=t_end+'.00'
+        print(f'[Mov make_frag_time] path_file: {path_file}')
+        try:
+            # Обрезка видео по временным меткам
+            clip = VideoFileClip(filename=path_file)
+            frag = clip.subclip(start, end)
+            # clip <class 'moviepy.video.io.VideoFileClip.VideoFileClip'>
+            # print(f'[Mov make_frag_time] clip type: {type(clip)}')
+            # print(f'[Mov make_frag_time] frag type: {type(frag)}') 
+            return frag
+        except Exception as eR:
+            print(f"[Mov make_frag_time] Не удалось создать фрагмент {path_file}: {eR}")
+            self.Logger.log_info(f"[Mov make_frag_time] Не удалось создать фрагмент {path_file}: {eR}")
+            return None
 
-        # сохранение видео
-        # clip.write_videofile(f'{os.path.join(self.downloaded_file_path, file_name+ext)}')
-        clip.close()
+    # сохраняем фрагмент
+    def save_frag (self, frag: VideoFileClip, 
+                        name_file: str, 
+                        ext = '.mp4'):
+        save_full_path = os.path.join(self.save_file_path, name_file+ext)
+        if not save_full_path:
+            print(f'[Mov save_frag] save_full_path is None: {save_full_path}')
+            return None
+        if not frag:
+            print(f'[Mov save_frag] frag is None: {frag}')
+            return None
+        try:
+            # Сохранение фрагмента в файл
+            frag.write_videofile(filename=save_full_path)                  
+            print(f'[Mov save_frag] frag saved: {save_full_path}') 
+            return save_full_path
+        except Exception as eR:
+            print(f"[Mov save_frag] Не удалось записать фрагмент {save_full_path}: {eR}")
+            self.Logger.log_info(f"[Mov save_frag] Не удалось записать фрагмент {save_full_path}: {eR}")
+            return None
 
-        # # Удаление лого из фрагмента
-        # clip1 = clip1.fx(vfx.crop, x1=10, y1=10, x2=110, y2=30) # Координаты логотипа
-
-        # # Уменьшение первого фрагмента и размещение его над вторым фрагментом
-        # clip1_resized = clip1.resize(0.5)
-        # final_clip = concatenate_videoclips([clip1_resized, clip2], method="compose")
-
-        # # Добавление титров
-        # txt_clip = TextClip("Your Title Here", fontsize=24, color='white', size=final_clip.size)
-        # txt_clip = txt_clip.set_duration(final_clip.duration)
-
-        # final_clip = concatenate_videoclips([final_clip, txt_clip.set_pos("center")], method="compose")
-
-        # # Запись итогового видеофайла
-        # final_clip.write_videofile("output.mp4", codec="libx264")
-
-        # # Освобождение ресурсов
-        # clip1.close()
-        # clip2.close()
-        # final_clip.close()
-
-    def process_video(self, filename):
-        clip = VideoFileClip(filename)
-        # Обработка видео
-        clip.write_videofile(f"output_{filename}")
-
+    # отрабатываем таблицу frag
+    async def work_frag (self):
+        # создаем (дополняем) таблицу frag на базе task
+        try:
+            if not await self.insert_frag():
+                print(f'\n[Mov: work_frag] В таблице [task] нет ссылок для фрагментации')
+        except Exception as eR:
+            print(f"\n[Mov work_frag insert_frag] Не удалось записать в таблицу frag: {eR}")
+            self.Logger.log_info(f"\n[Mov work_frag insert_frag] Не удалось записать в таблицу frag: {eR}")
+            return None
+        try:
+            # отбираем скачанные, но не отработанные ссылки в таблице 'frag'
+            async_results = await self.Db.read_data_two( 
+                            name_table = 'frag',  
+                            one_column_name = 'in_work_download', 
+                            one_params_status = 'downloaded',
+                            two_column_name = 'in_work_frag', 
+                            two_params_status = 'not_frag',
+                                                    )
+        except Exception as eR:
+            print(f"\n[Mov work_frag read_data_two] Не удалось прочитать таблицу frag: {eR}")
+            self.Logger.log_info(f"[Mov work_frag read_data_two] Не удалось прочитать таблицу frag: {eR}")
+            return None
+        # print(f'\n[Mov: work_frag read_data_two] async_results: {async_results}')
+        # список объектов <class 'sqlalchemy.engine.row.Row'>
+        rows = async_results.fetchall()
+        print(f'\n[Mov: work_frag read_data_two] rows: {rows}')
+        if not rows: 
+            print(f'\n[Mov: work_frag] В таблице [frag] нет ссылок для фрагментации')
+            return None
+        
+        # есть задачи для фрагментации
+        # формируем аргументы для фрагментации
+        tasks_frag_time=[(row.path_download, row.timestamp_start, row.timestamp_end) for row in rows]
+        print(f'\n[Mov: work_frag] tasks_frag_time: {tasks_frag_time}')
+        if not tasks_frag_time:
+            print(f'\n[Mov: work_frag] не сформировали аргументы для фрагментации: {tasks_frag_time}')
+            self.Db.print_data('frag')
+            return None
+        
+        list_frags=[] # список фрагментов
+        for task_frag_time in tasks_frag_time:
+            frag = self.make_frag_time(*task_frag_time)
+            print(f'\n[Mov: work_frag make_frag_time] frag: {frag}')
+            list_frags.append(frag)
+        
+        # список имен фрагментов
+        names_frags = [row.name_frag for row in rows]
+        vids = [row.video_id for row in rows]
+        
+        # записываем фрагменты на диск и в таблицу frag и task
+        for frag, name_frag, vid in zip(list_frags, names_frags, vids):
+            print(f'\n[Mov: work_frag make_frag_time] frag: {frag}')
+            print(f'\n[Mov: work_frag] names_frag: {name_frag}')
+            print(f'\n[Mov: work_frag] vid: {vid}')
+            if not frag or not name_frag or not vid:
+                print(f'\n[Mov: work_frag] frag, name_frag, vid is None')
+            save_full_path=self.save_frag(frag, name_frag)
+            if not save_full_path: 
+                print(f'\n[Mov: work_frag] не получилось записать фрагмент: {name_frag}')
+                continue
+            diction = {'in_work_frag': 'fraged', 'path_frag': save_full_path}
+            if not await self.Db.update_table('task', vid, diction) or not await self.Db.update_table('frag', vid, diction):
+                print(f'\n[Mov: work_frag] не получилось записать в таблицу frag: {save_full_path}')
+        
+        # выводим таблицу frag
+        #await self.Db.print_data('frag')
+        return vids, names_frags 
 #
 # MAIN **************************
 async def main():
@@ -94,64 +233,28 @@ async def main():
     print(f'\nБот готов обрабатывать видео')
 
     # создаем объект класса 
-    dnld=Dnld() 
+    mov=Mov() 
     #
-    minut=1
+    minut=0.5
     while True:
         #
-        print(f'\nБот по скачиванию ждет {minut} минут(ы) ...')
-        sleep (60*minut)
-        print(f'\nСодержание таблиц в БД...')
-        await dnld.Db.print_data(name_table='task')
-        await dnld.Db.print_data(name_table='download_link')
-        
+        print(f'\nБот по отработке видео ждет {minut} минут(ы) ...')
+        sleep (int(60*minut))
+        result=None
         try:
-            # формируем список-закачек из таблицы download_link
-            vid_url = await dnld.download_video()
+            result = await mov.work_frag()
         except Exception as eR:
-            print(f'\nERROR[Dnld main] ERROR: {eR}') 
-            dnld.Logger.log_info(f'\nERROR[Dnld main] ERROR: {eR}') 
+            print(f'\nERROR[Mov main] ERROR: {eR}') 
+            mov.Logger.log_info(f'\nERROR[Mov main] ERROR: {eR}') 
         
-        # проверка есть ли видео для закачивания
-        if not vid_url: 
-            print(f'\n[Dnld main] пока нет задач для закачек...')
-            dnld.Logger.log_info(f'\n[Dnld main] пока нет задач для закачек...')
-            
-            # если нет закачек, сверяем БД и файлы на диске
-            # vid_dnld = await dnld.check_dnld_file() 
-            if await dnld.check_dnld_file():
-                await dnld.Db.print_data(name_table='task')
-                await dnld.Db.print_data(name_table='download_link')
-            
-            # удаляем временные файлы после скачивания dlp
-            await dnld.delete_non_mp4_files()            
-            
-            # если нет списка закачек, то после сравнения БД и файлов на диске, новая итерация
-            continue
-        
-        # скачиваем файлы 
-        results = await dnld.dlp(vid_url)
-        if not results:
-            print(f"\n[Dnld main] Ошибка при скачивании dnld.dlp(vid_url)")
-            continue
-        # проверяем скачанные файлы на диске
-        for result in results:
-            print(f"\n[Dnld main] Downloaded result: {result}")
-            # проверяем скачал ли run_dlp файл на диск
-            if not await dnld.dnld_file(*result):
-                print(f"\n[Dnld main] result: {result} update full_parth_vid is NONE")
+        # проверка результата
+        if not result: 
+            print(f'\n[Mov main] пока нет задач для фрагментации ...')
+            mov.Logger.log_info(f'\n[Mov main] пока нет задач для фрагментации...')
 
-        print(f'\nСодержание таблиц в БД...')
-        await dnld.Db.print_data(name_table='task')
-        await dnld.Db.print_data(name_table='download_link')
-
-        # сверяем БД и файлы закачки
-        vid_dnld = await dnld.check_dnld_file() 
-        if vid_dnld:
-            await dnld.Db.print_data(name_table='task')
-            await dnld.Db.print_data(name_table='download_link')
-        # удаляем временные файлы после скачивания dlp
-        await dnld.delete_non_mp4_files()
+        print(f'\nСодержание таблицы task & frag...')
+        await mov.Db.print_data('task')
+        await mov.Db.print_data('frag')
 
 
 if __name__ == "__main__":

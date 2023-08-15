@@ -1,3 +1,5 @@
+
+from time import sleep, time
 from datetime import datetime
 from aiogram import types
 from aiogram.dispatcher.filters import Text, Command
@@ -291,14 +293,17 @@ class Client:
         await state.finish()
         #
         # дописываем в строку временные метки для БД
-        #self.diction4db['video_duration_sec']=self.video_duration_sec
+        self.diction4db['time_task']=int(time())
         self.diction4db['timestamp_start']=self.timestamp_start
         self.diction4db['timestamp_start_dt']=self.timestamp_start_dt
         self.diction4db['timestamp_end']=self.timestamp_end
         self.diction4db['timestamp_end_dt']=self.timestamp_end_dt
         self.diction4db['segment_duration']=self.segment_duration
         # задача не проверялась на закачку исходника
-        self.diction4db['in_work_download']='no' 
+        self.diction4db['in_work_download']='not_download'
+        self.diction4db['path_download']='not_path'
+        self.diction4db['in_work_frag']='not_frag' 
+        self.diction4db['path_frag']='not_path' 
         
         #
         # создаем и передаем словарь значений в БД

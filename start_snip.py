@@ -67,12 +67,12 @@ async def main():
     #
     # Список скриптов для запуска
     scripts = [
-        #os.path.join(sys.path[0], 'make_db.py'),
+        os.path.join(sys.path[0], 'bot_mov.py'),
         os.path.join(sys.path[0], 'bot_telega.py'),
         os.path.join(sys.path[0], 'bot_dnld.py'),
     ]
     #
-    print(f'\nСтарт приложения...')
+    print(f'\nСтарт приложения...') 
     print(f'\n==============================================================================\n')
     print(f'File: [{os.path.basename(sys.argv[0])}]')
     print(f'Path: [{sys.path[0]}]') 

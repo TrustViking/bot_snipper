@@ -5,18 +5,15 @@ metadata = MetaData()
 #
 name_table_task = 'task'
 table_task = Table(
-    name_table_task,
+    name_table_task, 
     metadata,
     Column("id", Integer, primary_key=True),
-    #Column("task_time_dt", DateTime), # Получаем текущее время задачи
-    # Получаем текущее время задачи
-    # Column("current_timestamp", DateTime, default=func.current_timestamp()), 
-    # Column("current_date", DateTime, default=func.current_date()), 
-    # Column("current_time", DateTime, default=func.current_time()), 
-    # Column("localtime", DateTime, default=func.localtime()), 
-    # Column("localtimestamp", DateTime, default=func.localtimestamp()), 
-    # Column("now", DateTime, default=func.now()), 
-
+    Column("time_task", Integer), # Получаем текущее время постановки задачи
+    Column("time2work", Integer), 
+    Column("update_time", Integer),
+    Column("time_dnld", Integer), 
+    Column("time_frag", Integer), 
+    # 
     Column("url_video_y2b", String(50)),
     Column("video_id", String(50)),
     Column("channel_title", String(150)),
@@ -35,41 +32,66 @@ table_task = Table(
     Column("timestamp_end", String(15)),
     Column("timestamp_end_dt", DateTime),
     #
-    Column("in_work_download", String(3)), # yes or no
-    # время начала выполнения задачи
-    Column("time2work", DateTime, default=func.current_timestamp()), 
-
+    Column("in_work_download", String(15)), # downloaded or not_download
+    Column("path_download", String(150)), # /path/ or not_path
+    Column("in_work_frag", String(15)), # frag or not_frag
+    Column("path_frag", String(150)), # /path/ or not_path
 
             ) 
 #
-name_table_dowmload = 'download_link'
+name_table_dnld = 'dnld_link'
 table_download = Table(
-    name_table_dowmload,
+    name_table_dnld,
     metadata,
     Column("id", Integer, primary_key=True),
-    # Получаем текущее время задачи
-    #Column("current_timestamp", DateTime, default=func.current_timestamp()), 
-    #Column("current_date", DateTime, default=func.current_date()), 
-    #Column("current_time", DateTime, default=func.current_time()), 
-    #Column("localtime", DateTime, default=func.localtime()), 
-    #Column("localtimestamp", DateTime, default=func.localtimestamp()), 
-    #Column("now", DateTime, default=func.now()), 
+    Column("time_task", Integer), # Получаем текущее время постановки задачи
+    Column("time2work", Integer), 
+    Column("update_time", Integer), 
+    Column("time_dnld", Integer), 
     #
     Column("url_video_y2b", String(150)),
     Column("video_id", String(50)),
-    # время начала-окончания выполнения задачи
-    # Column("start2work", DateTime, default=func.current_timestamp()), 
-    # Column("end2work", DateTime, default=func.current_timestamp()), 
-    # Column("duratiion_work", DateTime, default=func.current_timestamp()), 
-    Column("worked_link", String(15)), # No, YES
-    Column("path_download", String(150)),
+    # отметка скачанная или нет ссылка 
+    Column("in_work_download", String(15)), # downloaded or not_download
+    Column("path_download", String(150)), # /path/ or not_path
+    #Column("in_work_frag", String(15)), # fraged or not_frag
+    #Column("name_frag", String(100)), # 
             ) 
 
-
+name_table_frag = 'frag'
+table_frag = Table(
+    name_table_frag,
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("date_message", String(50)),
+    Column("username", String(50)),
+    Column("user_id", String(50)),
+    #
+    Column("time_task", Integer), # Получаем текущее время постановки задачи
+    Column("time2work", Integer), 
+    Column("update_time", Integer), 
+    Column("time_frag", Integer), 
+    #
+    Column("url_video_y2b", String(150)),
+    Column("video_id", String(50)),
+    #
+    Column("timestamp_start", String(15)),
+    Column("timestamp_start_dt", DateTime),
+    Column("timestamp_end", String(15)),
+    Column("timestamp_end_dt", DateTime),
+    #
+    Column("in_work_download", String(15)), # downloaded or not_download
+    Column("path_download", String(150)), # /path/ or not_path
+    Column("in_work_frag", String(15)), # fraged or not_frag
+    Column("name_frag", String(100)), # 
+    Column("path_frag", String(150)), # /path/ or not_frag
+            ) 
 # Объединение таблиц в словарь, где ключами будут имена таблиц, 
 # а значениями - соответствующие объекты Table
 tables = {
     name_table_task: table_task,
-    name_table_dowmload: table_download,
+    name_table_dnld: table_download,
+    name_table_frag: table_frag,
+
             }
 
