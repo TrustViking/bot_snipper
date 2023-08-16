@@ -151,7 +151,6 @@ class Dnld:
             video_id=row.video_id
             #print(f'\n[Dnld: videoid4dnld] video_id: \n{video_id}, \ntype video_id: {type(video_id)}')
             vid4dnld.add(video_id)
-
         return vid4dnld
 
     # читаем таблицу task, собираем video_id для таблицы dnld_link, 
@@ -160,10 +159,8 @@ class Dnld:
         vid_work=set() # множество для отработки
         vid_table=set() # множество из таблицы dnld_link
         vid_write_table = set() # множество для записи в таблицу dnld_link
-        
         # получаем множество неотработанных закачек в таблице task
         vid_work = await self.set_vid4work()
-        
         # берем все данные из таблицы dnld_link
         cursor_result = await self.Db.data_table('dnld_link')
         rows=cursor_result.fetchall()
@@ -171,7 +168,6 @@ class Dnld:
         for row in rows:
             vid=row.video_id
             vid_table.add(vid)
-        
         # оставляем id видео, которые есть в таблице task, но нет в таблице dnld_link
         vid_write_table = vid_work - vid_table
         if not vid_write_table:
@@ -180,21 +176,19 @@ class Dnld:
         #
         data=[]
         diction4db={}
-        print(f'\n[Dnld update_tables] Надо перенести из таблицы task в dnld_link [{len(vid_write_table)}] ссылки:')
+        # print(f'\n[Dnld update_tables] Надо перенести из таблицы task в dnld_link [{len(vid_write_table)}] ссылки:')
         for video_id in vid_write_table:
-            print(video_id)
+            # print(video_id)
             diction4db['time_task']=int(time())
             diction4db['video_id']=video_id
             diction4db['url_video_y2b']=f'https://www.youtube.com/watch?v={video_id}'
             diction4db['in_work_download']='not_download'
             diction4db['path_download']='not_path'
-            
             # записываем в таблицу dnld_link
             if not await self.Db.insert_data('dnld_link', diction4db):
                 print(f'\n[Dnld update_tables] Ошибка записи в dnld_link новой ссылки {diction4db}')
             data.append(diction4db)
             diction4db={} # очищаем словарь данных в таблицу dnld_link
-        
         return data
 
     # # читаем таблицу dnld_link и отбираем закачки, которые не выполнены
@@ -203,7 +197,7 @@ class Dnld:
     async def download_video(self):
         # переносим новые задачи из таблицы task в dnld_link
         if not await self.update_tables():
-            print(f'Dnld download_video] пока нет новых задач в таблице task')
+            print(f'\n[Dnld download_video] пока нет новых задач в таблице task')
         #
         vid_dnld=set() # множество из dnld_link, которые уже закачаны 
         vid4work=set() # множество из dnld_link, которые надо закачать
@@ -211,14 +205,14 @@ class Dnld:
         vid_dnld = await self.videoid_dnld()
         # читаем ссылки из таблицы dnld_link, которые надо отработать
         vid4work = await self.videoid4dnld()
+        if not vid4work:
+            print(f'\n[Dnld download_video vid4work] пока нет в таблице [dnld_link] ссылок на закачку')
+            return None
         # проверяемся на пересечении отработанных и не отработанных множествах таблицы dnld_link
         error_set=vid_dnld & vid4work
         if error_set:
             print(f'\nERROR [Dnld download_video] пересекаются отработанные и не отработанные закачки: {error_set}')
             #return None
-        if not vid4work:
-            print(f'\n[Dnld download_video] пока нет ссылок на отработку vid4work: {vid4work}')
-            return None
         #
         print(f'\n[Dnld download_video] есть список закачек на отработку: {vid4work}')
         # создаем словарь {идентификатор : ютуб адрес}
@@ -246,7 +240,7 @@ class Dnld:
                         }
             arg_list.append((ydl_opts, url, vid))
         return arg_list
-# 
+    # 
     def progress_hook(self, d):
         """
             'status': состояние загрузки, может быть 'downloading', 'finished', или 'error'.
@@ -277,7 +271,7 @@ class Dnld:
                 # Возврат информации об успешном скачивании
                 outtmpl=params['outtmpl']
                 path_save_video=outtmpl['default']
-                print(f'[Dnld run_dlp] path_save_video: {path_save_video}') 
+                # print(f'[Dnld run_dlp] path_save_video: {path_save_video}') 
                 # return f"Downloaded: {params['outtmpl']}" # 'outtmpl'
                 #os.path.dirname(full_path)
         except Exception as eR:
@@ -295,7 +289,6 @@ class Dnld:
             print(f'[Dnld dnld_file] list_file_dir: is {list_file_dir} \nFile: {vid} not dowload')
             return None
         print(f'[Dnld dnld_file] Video_id {vid} download name: {list_file_dir[0][1]}')
-
         # Находим в таблице 'dnld_link' строки с vid и записываем словарь значений
         diction={'in_work_download': 'downloaded', 
                 'path_download': str(os.path.join(path, list_file_dir[0][1])),
@@ -324,12 +317,10 @@ class Dnld:
         # video_id (скачанные) из БД добавляем в множество - set()
         vid_dnld = {row.video_id for row in rows}
         print(f'\n[Dnld: check_dnld_file] В таблице [dnld_link] закачаны ссылки {vid_dnld}')
-
         #  множество имен файлов, которые находятся на диске 
         set_file_dir=set(os.listdir(self.downloaded_file_path))
         print(f'\n[Dnld: check_dnld_file] На диске закачано {len(set_file_dir)} файлов:')
         for i in set_file_dir: print(f'{i}')
-        
         # выбираем файлы из БД, которые отмечены, но по факту не скачаны
         set_in_disk=set()
         for file_name in set_file_dir:
@@ -341,7 +332,6 @@ class Dnld:
         if not set_vid4dnld:
             print(f'\n[Dnld check_dnld_file] БД совпадает с файлами на диске')
             return None
-        
         # есть файлы, которые не скачаны
         print(f'\n[Dnld check_dnld_file] БД не совпадает с файлами на диске. \nНадо закачать {set_vid4dnld}')
         # вносим изменения в dnld_link, ссылки, которые по факту не закачаны
@@ -355,8 +345,7 @@ class Dnld:
             if not await self.Db.update_table('task', vid, diction):
                 print(f'\nERROR [Dnld check_dnld_file] в task обновить {vid} не получилось {diction}')
         return set_vid4dnld
-
-
+    #
     # если есть на диске, но нет в task, отмечаем как скачаный 
     async def check_db_disk (self):
         async_results = await self.Db.read_data_one(
@@ -368,16 +357,14 @@ class Dnld:
         if not rows: 
             print(f'\n[Dnld: check_db_disk] В таблице [dnld_link] нет отработанных ссылок')
             return None
-        
         # video_id (не скачанные) из БД добавляем в множество - set()
         vid4dnld = {row.video_id for row in rows}
         print(f'\n[Dnld: check_db_disk] В таблице [dnld_link] не закачаны ссылки {vid4dnld}')
-
         #  множество имен файлов, которые находятся на диске 
         set_file_dir=set(os.listdir(self.downloaded_file_path))
         print(f'\n[Dnld: check_db_disk] На диске закачано {len(set_file_dir)} файлов:')
-        for i in set_file_dir: print(f'{i}')
-        
+        for i in set_file_dir: 
+            print(f'{i}')
         # выбираем файлы из БД, которые скачаны, но не отмечены
         set_db_disk=[]
         for file_name in set_file_dir:
@@ -389,7 +376,6 @@ class Dnld:
         if not set_db_disk:
             print(f'\n[Dnld check_db_disk] dnld_link совпадает с файлами на диске')
             return None
-        
         # есть файлы, которые не отмечены
         print(f'\n[Dnld check_db_disk] dnld_link не совпадает с файлами на диске. \nНадо отметить {set_db_disk}')
         # вносим изменения в dnld_link, ссылки, которые по факту не закачаны
@@ -403,8 +389,7 @@ class Dnld:
             if not await self.Db.update_table('task', vid, diction):
                 print(f'\nERROR [Dnld check_dnld_file] в task обновить {vid} не получилось {diction}')
         return set_db_disk
-
-
+    #
     # удаляем временные файлы после скачивания dlp
     async def delete_non_mp4_files(self):
         #  множество имен файлов, которые находятся на диске 
@@ -429,7 +414,7 @@ class Dnld:
         #print(f'\n[Dnld main] есть словарь закачек (vid_url): {vid_url}')
         # создаем список команд для yt_dlp
         command_list=self.make_arg(vid_url)
-        print(f'\n[Dnld dlp] command_list: {command_list}')
+        #print(f'\n[Dnld dlp] command_list: {command_list}')
         # Запускаем процессы скачивания
         try:
             with multiprocessing.Pool(self.max_download) as pool:
@@ -446,17 +431,15 @@ class Dnld:
 async def main():
     print(f'\n**************************************************************************')
     print(f'\nБот по скачиванию начал мониторить задачи...\n')
-    # создаем объект класса 
     dnld=Dnld() 
-    #
-    minut=1
+    minut=0.3
     while True:
         #
         print(f'\nБот по скачиванию ждет {minut} минут(ы) ...')
         sleep (int(60*minut))
         print(f'\nСодержание таблиц в БД...')
-        await dnld.Db.print_data(name_table='task')
-        await dnld.Db.print_data(name_table='dnld_link')
+        await dnld.Db.print_data('task')
+        await dnld.Db.print_data('dnld_link')
         
         try:
             # формируем список-закачек из таблицы dnld_link
@@ -473,16 +456,16 @@ async def main():
             # если нет закачек, сверяем БД и файлы на диске
             # vid_dnld = await dnld.check_dnld_file() 
             if await dnld.check_dnld_file():
-                await dnld.Db.print_data(name_table='task')
-                await dnld.Db.print_data(name_table='dnld_link')
+                await dnld.Db.print_data('task')
+                await dnld.Db.print_data('dnld_link')
             if await dnld.check_db_disk():
-                await dnld.Db.print_data(name_table='task')
-                await dnld.Db.print_data(name_table='dnld_link')
+                # await dnld.Db.print_data('task')
+                await dnld.Db.print_data('dnld_link')
 
             # удаляем временные файлы после скачивания dlp
             await dnld.delete_non_mp4_files()            
-            
-            # если нет списка закачек, то после сравнения БД и файлов на диске, новая итерация
+            # так как нет списка закачек, то после сравнения БД и файлов на диске, 
+            # уходим на новую итерацию
             continue
         
         # скачиваем файлы 
@@ -506,7 +489,7 @@ async def main():
             await dnld.Db.print_data(name_table='task')
             await dnld.Db.print_data(name_table='dnld_link')
         if await dnld.check_db_disk():
-            await dnld.Db.print_data(name_table='task')
+            # await dnld.Db.print_data(name_table='task')
             await dnld.Db.print_data(name_table='dnld_link')
         # удаляем временные файлы после скачивания dlp
         await dnld.delete_non_mp4_files()

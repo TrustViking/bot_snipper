@@ -54,8 +54,7 @@ class BaseDB:
         print(f'[BaseDB] countInstance: [{self.countInstance}]')
         self.Logger.log_info(f'[BaseDB] countInstance: [{self.countInstance}]')
 #
-    # добавляем данные-строку в таблицу
-    # data_bot = {'url_video_y2b': 'https://example.com', 'id_user': 'user1', 'id_chat': 'chat1'}
+    # добавляем строку (словарь) в таблицу
     async def insert_data(self, name_table: str, data4db: dict):
         #
         table=self.table.get(name_table)
@@ -159,6 +158,37 @@ class BaseDB:
             return None
 
 
+    # Находим в таблице 'task' и 'frag' строки с date_message и user_id
+    # записываем словарь значений
+    async def update_table_date(self, name_table: str, 
+                                date_message: str,
+                                user_id: str,
+                                diction: dict):
+        table=self.table.get(name_table)
+        # Находим все строки с vid и записываем словарь значений
+        try:
+            async with self.Session() as session:
+                stmt = (
+                    update(table).
+                    where(table.c.date_message == date_message, 
+                                table.c.user_id == user_id).
+                    values(diction))               
+                
+                # stmt = (update(table).
+                #         where(table.c.video_id == vid).
+                #         values(diction))
+                await session.execute(stmt)
+                await session.commit()
+                return date_message, user_id, diction
+        except SQLAlchemyError as eR:
+            print(f'\nERROR [BaseDB: update_table] ERROR: {str(eR)}')
+            self.Logger.log_info(f'\nERROR [BaseDB: update_table] ERROR: {str(eR)}')
+            await session.rollback()
+            return None
+
+
+
+
     # получаем все данные таблицы
     async def data_table(self, name_table: str):
         table=self.table.get(name_table)
@@ -178,52 +208,3 @@ class BaseDB:
         print(f'\n*[print_data] в таблице [{name_table}] записано [{len(rows)}] строк:')
         for row in rows: print(f'\n{row}')
 
-        # table=self.table.get(name_table)
-        # try:
-        #     async with self.Session() as session:
-        #         async_results = await session.execute(select(table))
-        # except SQLAlchemyError as eR:
-        #     print(f'\nERROR [BaseDB: print_data] ERROR: {str(eR)}')
-        #     self.Logger.log_info(f'[BaseDB: print_data] ERROR: {str(eR)}')
-        #     session.rollback()
-    #
-    # записываем в таблице dnld_link путь закачки файла 
-    # async def update_path_dnld(self,
-    #                         vid: str,
-    #                         new_value: str,
-    #                         ):
-    #     table=self.table.get('dnld_link')
-    #     diction={'path_download': new_value}
-    #     print(f'\n[BaseDB: update_path_dnld] diction: {diction}')
-    #     # Находим все строки, где значение column_to_search равно value_to_search
-    #     try:
-    #         async with self.Session() as session:
-    #             stmt = (update(table).
-    #                     where(table.c.video_id == vid).
-    #                     values(diction))
-    #             await session.execute(stmt)
-    #             await session.commit()
-    #     except SQLAlchemyError as eR:
-    #         print(f'\nERROR [BaseDB: update_path_dnld] ERROR: {str(eR)}')
-    #         self.Logger.log_info(f'\nERROR [BaseDB: update_path_dnld] ERROR: {str(eR)}')
-    #         # await session.rollback()
-    #         return None
-    #     return new_value, vid
-
-    # записываем NO о закачке файла в таблицу dnld_link
-    # async def update_no_worked_link(self, vid: str):
-    #     table=self.table.get('dnld_link')
-    #     # Находим все строки, где значение column_to_search равно value_to_search
-    #     try:
-    #         async with self.Session() as session:
-    #             stmt = (update(table).
-    #                     where(table.c.video_id == vid).
-    #                     values(_))
-    #             await session.execute(stmt)
-    #             await session.commit()
-    #     except SQLAlchemyError as eR:
-    #         print(f'\nERROR [BaseDB: update_rows] ERROR: {str(eR)}')
-    #         self.Logger.log_info(f'\nERROR [BaseDB: update_rows] ERROR: {str(eR)}')
-    #         # await session.rollback()
-    #         return None
-    #     return vid
