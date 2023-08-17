@@ -30,7 +30,7 @@ class You2b:
         self.default_audio_language = ''
         self.duration_iso8601 = ''
         #
-        self.api_key=os.getenv('API_KEY')
+        self.api_key=os.getenv('Y2B_API_KEY')
         #self._print_API_KEY()
         #
         self.video_id=self._extract_video_id()

@@ -3,7 +3,6 @@
 from time import sleep, time
 from concurrent.futures import ThreadPoolExecutor
 import os, sys, asyncio, logging
-#
 from bot_env.mod_log import Logger
 from data_base.base_db import BaseDB
 #
@@ -239,7 +238,7 @@ async def main():
     print(f'\n**************************************************************************')
     print(f'\nБот готов обрабатывать видео')
     mov=Mov() 
-    minut=0.2
+    minut=1
     while True:
         #
         print(f'\nБот по отработке видео ждет {minut} минут(ы) ...')

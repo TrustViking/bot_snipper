@@ -36,7 +36,8 @@ table_task = Table(
     Column("path_download", String(200)), # /path/ or not_path
     Column("in_work_frag", String(30)), # frag or not_frag
     Column("path_frag", String(200)), # /path/ or not_path
-
+    Column("send", String(200)), # /link/ or not_send
+    Column("dnld_link", String(200)), # yes or no
             ) 
 #
 name_table_dnld = 'dnld_link'
@@ -83,6 +84,8 @@ table_frag = Table(
     Column("in_work_frag", String(30)), # fraged or not_frag
     Column("name_frag", String(200)), # 
     Column("path_frag", String(200)), # /path/ or not_frag
+    Column("send", String(200)), # /link/ or not_send
+    Column("dnld_link", String(200)), # yes or no
             ) 
 # Объединение таблиц в словарь, где ключами будут имена таблиц, 
 # а значениями - соответствующие объекты Table
