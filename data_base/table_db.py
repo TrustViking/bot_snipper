@@ -9,6 +9,7 @@ table_task = Table(
     metadata,
     Column("id", Integer, primary_key=True),
     Column("date_message", String(50)),
+    Column("chat_id", String(100)),
     Column("time_task", Integer), # Получаем текущее время постановки задачи
     # Column("time2work", Integer), 
     Column("update_time", Integer),
@@ -36,8 +37,8 @@ table_task = Table(
     Column("path_download", String(200)), # /path/ or not_path
     Column("in_work_frag", String(30)), # frag or not_frag
     Column("path_frag", String(200)), # /path/ or not_path
-    Column("send", String(200)), # /link/ or not_send
-    Column("dnld_link", String(200)), # yes or no
+    Column("send", String(20)), # sended or not_send
+    Column("dnld_link", String(200)), # /link/ or not_link
             ) 
 #
 name_table_dnld = 'dnld_link'
@@ -63,6 +64,7 @@ table_frag = Table(
     metadata,
     Column("id", Integer, primary_key=True),
     Column("date_message", String(100)),
+    Column("chat_id", String(100)),
     Column("time_task", Integer), # Получаем текущее время постановки задачи
     Column("username", String(50)),
     Column("user_id", String(50)),
@@ -84,8 +86,8 @@ table_frag = Table(
     Column("in_work_frag", String(30)), # fraged or not_frag
     Column("name_frag", String(200)), # 
     Column("path_frag", String(200)), # /path/ or not_frag
-    Column("send", String(200)), # /link/ or not_send
-    Column("dnld_link", String(200)), # yes or no
+    Column("send", String(20)), # sended or not_send
+    Column("dnld_link", String(200)), # /link/ or not_link
             ) 
 # Объединение таблиц в словарь, где ключами будут имена таблиц, 
 # а значениями - соответствующие объекты Table

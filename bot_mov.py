@@ -102,6 +102,7 @@ class Mov:
                         'date_message': row.date_message,
                         'username': row.username,
                         'user_id': row.user_id,
+                        'chat_id': row.chat_id,
                         'time_task': int(time()), 
                         'url_video_y2b': row.url_video_y2b,
                         'video_id': row.video_id,

@@ -140,7 +140,7 @@ class BaseDB:
             return None
     #
     # Находим в таблице 'dnld_link', 'task' строки с vid и записываем словарь значений
-    async def update_table(self, name_table: str, vid: str, diction: dict):
+    async def update_table_vid(self, name_table: str, vid: str, diction: dict):
         table=self.table.get(name_table)
         # Находим все строки с vid и записываем словарь значений
         try:
@@ -168,15 +168,10 @@ class BaseDB:
         # Находим все строки с vid и записываем словарь значений
         try:
             async with self.Session() as session:
-                stmt = (
-                    update(table).
-                    where(table.c.date_message == date_message, 
-                                table.c.user_id == user_id).
-                    values(diction))               
-                
-                # stmt = (update(table).
-                #         where(table.c.video_id == vid).
-                #         values(diction))
+                stmt = (update(table).
+                        where(table.c.date_message == date_message, 
+                              table.c.user_id == user_id).
+                        values(diction))               
                 await session.execute(stmt)
                 await session.commit()
                 return date_message, user_id, diction
@@ -186,7 +181,26 @@ class BaseDB:
             await session.rollback()
             return None
 
-
+    # Находим в таблице 'task' и 'frag' строки с path_frag
+    # записываем словарь значений
+    async def update_table_link(self, name_table: str, 
+                                      path_frag: str,
+                                      diction: dict):
+        table=self.table.get(name_table)
+        # Находим все строки с vid и записываем словарь значений
+        try:
+            async with self.Session() as session:
+                stmt = (update(table).
+                        where(table.c.path_frag == path_frag).
+                        values(diction))               
+                await session.execute(stmt)
+                await session.commit()
+                return path_frag, diction
+        except SQLAlchemyError as eR:
+            print(f'\nERROR [BaseDB: update_table_link] ERROR: {str(eR)}')
+            self.Logger.log_info(f'\nERROR [BaseDB: update_table_link] ERROR: {str(eR)}')
+            await session.rollback()
+            return None
 
 
     # получаем все данные таблицы

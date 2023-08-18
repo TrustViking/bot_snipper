@@ -294,10 +294,10 @@ class Dnld:
                 'path_download': str(os.path.join(path, list_file_dir[0][1])),
                 'update_time': int(time()),
                       }
-        if not await self.Db.update_table('dnld_link', vid, diction):
+        if not await self.Db.update_table_vid('dnld_link', vid, diction):
             print(f'\nERROR [Dnld dnld_file] обновить dnld_link [in_work_download: downloaded] не получилось')
             return None
-        if not await self.Db.update_table('task', vid, diction):
+        if not await self.Db.update_table_vid('task', vid, diction):
             print(f'\nERROR [Dnld dnld_file] обновить task [in_work_download: downloaded] не получилось')
             return None
         #
@@ -340,9 +340,9 @@ class Dnld:
                  'update_time': int(time()),
                  }
         for vid in set_vid4dnld:
-            if not await self.Db.update_table('dnld_link', vid, diction): 
+            if not await self.Db.update_table_vid('dnld_link', vid, diction): 
                 print(f'\nERROR [Dnld check_dnld_file] в dnld_link обновить {vid} не получилось {diction}')
-            if not await self.Db.update_table('task', vid, diction):
+            if not await self.Db.update_table_vid('task', vid, diction):
                 print(f'\nERROR [Dnld check_dnld_file] в task обновить {vid} не получилось {diction}')
         return set_vid4dnld
     #
@@ -384,9 +384,9 @@ class Dnld:
                     'path_download': os.path.join(self.downloaded_file_path, file_name),
                     'update_time': int(time()),
                     }
-            if not await self.Db.update_table('dnld_link', vid, diction): 
+            if not await self.Db.update_table_vid('dnld_link', vid, diction): 
                 print(f'\nERROR [Dnld check_dnld_file] в dnld_link обновить {vid} не получилось {diction}')
-            if not await self.Db.update_table('task', vid, diction):
+            if not await self.Db.update_table_vid('task', vid, diction):
                 print(f'\nERROR [Dnld check_dnld_file] в task обновить {vid} не получилось {diction}')
         return set_db_disk
     #

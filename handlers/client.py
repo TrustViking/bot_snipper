@@ -162,6 +162,7 @@ class Client:
         self.username=str(message.from_user.username)
         self.date_message=str(message.date)
         self.user_id=str(message.from_user.id)
+        self.chat_id=str(message.sender_chat.id)
         #
         parsTime=ParseTime(logger=self.Logger)
         self.video_duration_sec, self.datatime_duration=parsTime.format_iso8601_sec_dt(time_iso8601=self.video_duration)
@@ -181,6 +182,7 @@ class Client:
             'username' : self.username,
             'date_message' : self.date_message,
             'user_id' : self.user_id,
+            'chat_id' : self.chat_id,
                         }
         #
         # спрашиваем подтверждение ссылки youtube
@@ -304,6 +306,8 @@ class Client:
         self.diction4db['path_download']='not_path'
         self.diction4db['in_work_frag']='not_frag' 
         self.diction4db['path_frag']='not_path' 
+        self.diction4db['send']='not_send'
+        self.diction4db['dnld_link']='not_link' 
         # создаем и передаем словарь значений в БД
         db=BaseDB(logger=self.Logger)
         await db.insert_data('task', self.diction4db)
