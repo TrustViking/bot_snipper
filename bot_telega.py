@@ -5,7 +5,7 @@ from aiogram.utils import executor
 #
 from bot_env.create_obj4bot import dp
 from bot_env.mod_log import Logger
-from handlers.client import  Client
+from handlers.client import  Client_bot
 #
 #
 class Telega:
@@ -22,8 +22,8 @@ class Telega:
         self.Logger = Logger(log_file=log_file, log_level=log_level)
         self._print()
         # Client
-        self.client = Client(logger=self.Logger)
-        self._client_work()
+        self.client = Client_bot(logger=self.Logger)
+        #self._client_work()
     #
     # выводим № объекта
     def _print(self):
@@ -31,12 +31,13 @@ class Telega:
         self.Logger.log_info(f'[Telega] countInstance: [{self.countInstance}]')
 #
 #
-    def _client_work(self):
+    async def client_work(self):
         try:
             #
-            self.client.register_handlers_client()            
+            await self.client.register_handlers_client()            
             #
         except Exception as eR:
+            print (f'[main] error: {eR}')
             self.Logger.log_info(f'[main] error: {eR}')   
     #
 # MAIN **************************
@@ -46,6 +47,7 @@ async def main(_):
     telega=Telega() # создаем объект и в нем регистрируем хэндлеры Клиента, 
     telega.Logger.log_info(f'\n[main] Создали объект Telega()')
     print(f'\n[main] Создали объект Telega()')
+    await telega.client_work()
     # print(f'\n**************************************************************************')
 #
 if __name__ == "__main__":

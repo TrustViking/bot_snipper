@@ -11,10 +11,7 @@ table_task = Table(
     Column("date_message", String(50)),
     Column("chat_id", String(100)),
     Column("time_task", Integer), # Получаем текущее время постановки задачи
-    # Column("time2work", Integer), 
     Column("update_time", Integer),
-    # Column("time_dnld", Integer), 
-    # Column("time_frag", Integer), 
     # 
     Column("url_video_y2b", String(100)),
     Column("video_id", String(50)),
@@ -36,9 +33,11 @@ table_task = Table(
     Column("in_work_download", String(30)), # downloaded or not_download
     Column("path_download", String(200)), # /path/ or not_path
     Column("in_work_frag", String(30)), # frag or not_frag
-    Column("path_frag", String(200)), # /path/ or not_path
+    Column("path_frag", String(300)), # /path/ or not_path
     Column("send", String(20)), # sended or not_send
-    Column("dnld_link", String(200)), # /link/ or not_link
+    Column("send2group_file_id", String(300)), # id or not_id
+    Column("resend", String(20)), # resended or not_resend
+    Column("resend_file_id", String(300)), # id or not_id
             ) 
 #
 name_table_dnld = 'dnld_link'
@@ -47,9 +46,7 @@ table_download = Table(
     metadata,
     Column("id", Integer, primary_key=True),
     Column("time_task", Integer), # Получаем текущее время постановки задачи
-    # Column("time2work", Integer), 
     Column("update_time", Integer), 
-    # Column("time_dnld", Integer), 
     #
     Column("url_video_y2b", String(200)),
     Column("video_id", String(100)),
@@ -69,25 +66,21 @@ table_frag = Table(
     Column("username", String(50)),
     Column("user_id", String(50)),
     #
-    # Column("time2work", Integer), 
-    # Column("update_time", Integer), 
-    # Column("time_frag", Integer), 
-    #
     Column("url_video_y2b", String(200)),
     Column("video_id", String(100)),
     #
     Column("timestamp_start", String(30)),
-    # Column("timestamp_start_dt", DateTime),
     Column("timestamp_end", String(30)),
-    # Column("timestamp_end_dt", DateTime),
     #
     Column("in_work_download", String(30)), # downloaded or not_download
     Column("path_download", String(200)), # /path/ or not_path
     Column("in_work_frag", String(30)), # fraged or not_frag
-    Column("name_frag", String(200)), # 
-    Column("path_frag", String(200)), # /path/ or not_frag
+    Column("name_frag", String(300)), # 
+    Column("path_frag", String(300)), # /path/ or not_frag
     Column("send", String(20)), # sended or not_send
-    Column("dnld_link", String(200)), # /link/ or not_link
+    Column("send2group_file_id", String(300)), # id or not_id
+    Column("resend", String(20)), # resended or not_resend
+    Column("resend_file_id", String(300)), # id or not_id
             ) 
 # Объединение таблиц в словарь, где ключами будут имена таблиц, 
 # а значениями - соответствующие объекты Table

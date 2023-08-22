@@ -15,15 +15,13 @@ Bot, Dispatcher
 # хранилище состояний пользователей Finite State Machine (FSM)
 # может потребоваться настроить более надежное и постоянное хранилище, 
 # такое как RedisStorage или MongoDBStorage.
-storage = MemoryStorage() 
-
-
+storage_mem = MemoryStorage() 
 token=os.getenv('TELEGRAM_TOKEN')
-
 bot=Bot(token)
-dp=Dispatcher(bot, storage=storage)
+dp=Dispatcher(bot, storage=storage_mem)
 
-
-
+# #
+# api_id = os.getenv('TELEGRAM_API_ID')
+# api_hash = os.getenv('TELEGRAM_API_HASH')
 
 

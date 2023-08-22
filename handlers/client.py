@@ -2,12 +2,14 @@
 from time import sleep, time
 from datetime import datetime
 from aiogram import types
+from magic_filter import F
+
 from aiogram.dispatcher.filters import Text, Command
 from aiogram.dispatcher.filters import Regexp
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher import FSMContext
 #
-import re
+import re, os, sys
 #
 from bot_env.mod_log import Logger
 from bot_env.create_obj4bot import bot, dp
@@ -16,7 +18,7 @@ from keyboards.client_kb import KeyBoardClient
 from y2b4bot.you2b import You2b
 from data_base.base_db import BaseDB
 
-class Client:
+class Client_bot:
     """
     Создаем для telegram-bot хэндлеры клиента:
 
@@ -26,9 +28,13 @@ class Client:
     countInstance=0
     #
     def __init__(self, logger: Logger):
-        Client.countInstance+=1
-        self.countInstance=Client.countInstance
+        Client_bot.countInstance+=1
+        self.countInstance=Client_bot.countInstance
         self.Logger = logger
+        self.Db=BaseDB(logger=self.Logger)
+        # Устанавливаем состояние ожидания подтверждения
+        self.Confirmation = State()
+
         self._new_client()
         # словарь для создания и записи строки в БД про ссылку youtube
         self.youtube_info=None
@@ -49,8 +55,6 @@ class Client:
         self.default_audio_language = None
         #
         self.diction4db={} 
-        # Устанавливаем состояние ожидания подтверждения
-        self.Confirmation = State()
         # временные метки
         self.ParsTime= None
         self.timestamp=''
@@ -66,82 +70,37 @@ class Client:
         print(f'[_new_client] Client# {self.countInstance}')
         self.Logger.log_info(f'[_new_client] Client# {self.countInstance}')
     #
-    # кнопка-команда - /start - не работает
-    # async def _button_start(self): 
-    #     #
-    #     button_text = "ЗАПУСК"
-    #     bot_username = "snipper_video_bot"
-    #     start_param = "/start"
-
-    #     button_url = f"https://t.me/{bot_username}?start={start_param}"
-    #     keyboard = types.InlineKeyboardMarkup(row_width=1)
-    #     button = types.InlineKeyboardButton(button_text, url=button_url)
-    #     keyboard.add(button)        
-    #     # Отправка сообщения с кнопкой "ЗАПУСК"
-    #     await bot.send_message(chat_id=self.chat_id, text="Нажмите кнопку, чтобы запустить бота", 
-    #                         reply_markup=keyboard)
-    #
-    # обрабатывает команду пользователя - /start
-    async def command_start(self, message: types.Message): 
-        kb = KeyBoardClient(logger=self.Logger, row_width=1)
-        kb.menu_1_level() # добавляем меню 1 уровня
-        self.Logger.log_info(f'[command_start] kb.countInstance: {kb.countInstance}')
-        # отвечаем на команду /start и отправляем клавиатуру menu_1_level
-        await bot.send_message(
-            message.from_user.id, 
-            'Будем уникализировать фрагмент видео из youtube или свое видео?\nНажмите на соответствующую кнопку',
-            reply_markup=kb.keyboard)
     #
     # обработчик любого сообщения, кроме  - /start
     async def any2start(self, message: types.Message):
         kb = KeyBoardClient(logger=self.Logger, row_width=1)
         kb.start_button() # загружаем кнопку Старт в клавиатуру
-        self.Logger.log_info(f'[any2start] kb.countInstance: {kb.countInstance}')
-        # отвечаем на любое сообщение и отправляем кнопку СТАРТ 
-        await bot.send_message(
-            message.from_user.id, 
-            "Наберите команду '/start' или нажмите \U0001F447 на кнопку  \U0001F680 ПУСК",
-            reply_markup=kb.keyboard)
-        await message.delete()
-    #
-    # финальное сообщение -> на кнопку старт
-    async def end2start(self, message: types.Message):
-        kb = KeyBoardClient(logger=self.Logger, row_width=1)
-        kb.start_button() # загружаем кнопку Старт в клавиатуру
-        self.Logger.log_info(f'[end2start] kb.countInstance: {kb.countInstance}')
-        # пишем сообщение и отправляем кнопку СТАРТ 
-        await bot.send_message(
-            message.from_user.id,
-            'Работа выполнена, если надо еще что-то нарезать, то нажмите кнопку  \U0001F680 ПУСК',
-            reply_markup=kb.keyboard)
+        msg=(f"Для СТАРТА нажмите \U0001F447 на кнопку \U0001F680 *ПУСК*\ ")
+        await message.answer(text=message.chat.id)
+        await bot.send_message(message.from_user.id, msg, parse_mode="MarkdownV2", reply_markup=kb.keyboard)
         #
     # обрабатываем нажатие кнопки СТАРТ 
     # предлагаем выбрать 'youtube' (#1) или 'свое видео' (#2) 
     async def call_start(self, callback: types.CallbackQuery):
         kb = KeyBoardClient(logger=self.Logger, row_width=1)
         kb.menu_1_level() # добавляем меню 1 уровня
-        self.Logger.log_info(f'[call_start] kb.countInstance: {kb.countInstance}')
-        # пишем сообщение и отправляем меню 1 уровня
-        await callback.message.answer(text=f'Будем уникализировать фрагмент видео из youtube или свое видео?\nНажмите на соответствующую кнопку',
-                                      reply_markup=kb.keyboard)
+        msg = (f'Будем уникализировать фрагмент видео из youtube или свое видео?\n'
+               f'Нажмите на соответствующую кнопку')
+        await callback.message.answer(text=msg, reply_markup=kb.keyboard)
         # убираем часики на кнопке, которую нажали
         await callback.answer() # 
     #
     # обрабатываем нажатие кнопки #1 'Видео с youtube'
     async def call_1_y2b(self, callback: types.CallbackQuery):
-        kb = KeyBoardClient(logger=self.Logger, row_width=1)
-        self.Logger.log_info(f'[call_1_y2b] choice_user: {callback.data} = {kb.name_button[callback.data]}')
-        self.Logger.log_info(f'[call_1_y2b] kb.countInstance: {kb.countInstance}')
-        # название раздела
-        await callback.message.answer(text=f'Пришлите в этот чат ссылку на видео с youtube, которое будем фрагментировать')
-        # убираем часики на кнопке, которую нажали
+        msg = f'Пришлите в этот чат ссылку на видео с youtube, которое будем фрагментировать'
+        await callback.message.answer(msg)
+        # # убираем часики на кнопке, которую нажали
         await callback.answer() # 
     #    
     # обрабатываем нажатие кнопки #2 'Свое видео' 
     async def call_my_video(self, callback: types.CallbackQuery):
-        self.Logger.log_info(f'[call_my_video] choice_user: {callback.data}')
-        # print(f'[call_my_video] choice_user: {callback.data}')
-        await callback.message.answer(text=f'Тут чуть позже будет ветка обработки и компоновки видео пользоваттеля')
+        msg = f'Тут чуть позже будет ветка обработки видео пользоваттеля'
+        await callback.message.answer(msg) # 
         # убираем часики на кнопке, которую нажали
         await callback.answer() # 
     #
@@ -162,7 +121,7 @@ class Client:
         self.username=str(message.from_user.username)
         self.date_message=str(message.date)
         self.user_id=str(message.from_user.id)
-        self.chat_id=str(message.sender_chat.id)
+        self.chat_id=str(message.chat.id)
         #
         parsTime=ParseTime(logger=self.Logger)
         self.video_duration_sec, self.datatime_duration=parsTime.format_iso8601_sec_dt(time_iso8601=self.video_duration)
@@ -191,37 +150,33 @@ class Client:
             kb = KeyBoardClient(logger=self.Logger, row_width=1)
             kb.button_OK_NO_youtube_link() 
             # отвечаем пользователю на введенную ссылку YouTube 
+            mes4user=(f'Видео: [*{self.video_title}*] \n\n'
+                      f'Канал: [*{self.channel_title}*] \n\n'
+                      f'Продолжительность: {self.duration_minuts}')
             # отправляем клавиатуру подтверждения 
-            mes4user=f'Видео: [*{self.video_title}*] \n\nКанал: [*{self.channel_title}*] \n\nПродолжительность: {self.duration_minuts}'
-            self.Logger.log_info(mes4user)
-            await bot.send_message(message.from_user.id,
-                                   mes4user, 
-                                   reply_markup=kb.keyboard)
+            await bot.send_message(message.from_user.id, mes4user, reply_markup=kb.keyboard)
             # Устанавливаем состояние ожидания подтверждения
             await self.Confirmation.set()
         else: 
             print(f'[youtube_link_handler] There are empty fields in table \ndiction4db: {str(self.diction4db)}')
-            self.Logger.log_info(f'[youtube_link_handler] There are empty fields in table\n diction4db: {str(self.diction4db)}')
             # добавляем кнопки ОК & NO для youtube_link_handler
             kb = KeyBoardClient(logger=self.Logger, row_width=1)
             kb.button_OK_NO_youtube_link_bad() 
-            self.Logger.log_info(f'[youtube_link_handler] kb.countInstance: {kb.countInstance}')
-            
-            mes4user=f'{self.date_message} Вы ввели ошибочную ссылку на видео с названием: [*{self.video_title}*] на канале [*{self.channel_title}*] \nБудете вводить другую ссылку?'
-            await bot.send_message(
-                message.from_user.id,
-                mes4user, 
-                reply_markup=kb.keyboard)
-            #
+            mes4user=(f'{self.date_message} Вы ввели ошибочную ссылку'
+                      f'на видео с названием: [*{self.video_title}*] '
+                      f'на канале [*{self.channel_title}*] \n'
+                      f'Будете вводить другую ссылку?')
+            await bot.send_message(message.from_user.id, mes4user, reply_markup=kb.keyboard)
             # Устанавливаем состояние ожидания подтверждения
             await self.Confirmation.set()
         #
     # обрабатываем нажатие кнопки ОК #3 youtube_link 
     async def youtube_link_OK(self, callback: types.CallbackQuery, state: FSMContext):
-        #
-        mes4user=f'Введите временные метки фрагмента из видео: [*{self.video_title}*]. \nФормат временных меток начала и конца фрагмента: \n00:00:00-00:00:00, формат: [ЧЧ:ММ:СС-ЧЧ:ММ:СС]'
-        #self.Logger.log_info(f'[youtube_link_OK] {mes4user}')
-        await callback.message.answer(text=mes4user)
+        mes4user=(f'Введите временные метки фрагмента из видео: '
+                  f'[*{self.video_title}*]. \n'
+                  f'Формат временных меток начала и конца фрагмента: \n'
+                  f'00:00:00-00:00:00, формат: [ЧЧ:ММ:СС-ЧЧ:ММ:СС]')
+        await callback.message.answer(mes4user)
         # убираем часики на кнопке, которую нажали
         await callback.answer() # 
         # Сбрасываем состояние
@@ -229,30 +184,22 @@ class Client:
     #
     # обрабатываем временные метки 00:00:00-00:00:00, 00:00:00 -> ЧЧ:ММ:СС 
     async def youtube_timestamp(self, message: types.Message):
-        # 
         self.timestamp = message.text
         parsTime=ParseTime(logger=self.Logger)
         self.timestamp_start, self.timestamp_start_dt, self.timestamp_end, self.timestamp_end_dt, self.segment_duration = parsTime.parse_time(timestamp=self.timestamp)
-        
-        # print(f'[youtube_timestamp] timestamp_start:  {self.timestamp_start}')
-        # print(f'[youtube_timestamp] timestamp_start_dt:  {self.timestamp_start_dt}')
-        # print(f'[youtube_timestamp] timestamp_end:    {self.timestamp_end}')
-        # print(f'[youtube_timestamp] timestamp_end_dt:    {self.timestamp_end_dt}')
-        # print(f'[youtube_timestamp] segment_duration: {self.segment_duration}')
-        # print(f'[youtube_timestamp] video_duration_sec: {self.video_duration_sec}')
-        #
         # проверяем метки на корректность
         if int(self.segment_duration) >= int(self.video_duration_sec):
-            mes4user=(f'Длительность фрагмента больше самого видео!  \nПришлите любое сообщение или команду /start')
-            print(mes4user)
-            self.Logger.log_info(mes4user)
+            mes4user=(f'Длительность фрагмента больше самого видео!  \n'
+                      f'Пришлите любое сообщение')
             await bot.send_message(message.from_user.id, mes4user) 
             return None
         # проверяем метки на корректность
         if self.timestamp_start_dt > self.datatime_duration or self.timestamp_end_dt>self.datatime_duration:
-            mes4user=(f'Временные метки не корректны: \nНачало фрагмента: {self.timestamp_start} \nОкончание фрагмента: {self.timestamp_end} \nДлительность видео: {self.duration_minuts} \nВведите любые символы или /start')
-            print(mes4user)
-            #self.Logger.log_info(mes4user)
+            mes4user=(f'Временные метки не корректны: \n'
+                      f'Начало фрагмента: {self.timestamp_start} \n'
+                      f'Окончание фрагмента: {self.timestamp_end} \n'
+                      f'Длительность видео: {self.duration_minuts} \n'
+                      f'Введите любые символы и начните заново')
             await bot.send_message(message.from_user.id, mes4user) 
             return None
         #
@@ -268,10 +215,7 @@ class Client:
                   f'Видео: [*{self.video_title}*] \n'
                   f'Канал: [*{self.channel_title}*] \n\n'
                   f'Нажмите \U0001F447 кнопку ОК, если подтверждаете')
-        self.Logger.log_info(mes4user)
-        await bot.send_message(message.from_user.id,
-                                mes4user, 
-                                reply_markup=kb.keyboard)
+        await bot.send_message(message.from_user.id, mes4user, reply_markup=kb.keyboard)
         # Устанавливаем состояние ожидания подтверждения
         await self.Confirmation.set()
     #
@@ -288,7 +232,7 @@ class Client:
                   f'Результат в виде ссылки для скачивания, будет передана в этот чат. \n'
                   f'Через шесть часов, фрагмент будет удален из облака. Не забудьте скачать фрагмент на свой девайс.\n'
                   f'Ожидайте...')
-        await callback.message.answer(text=mes4user)
+        await callback.message.answer(mes4user)
         # убираем часики на кнопке, которую нажали
         await callback.answer() # 
         # Сбрасываем состояние
@@ -307,70 +251,67 @@ class Client:
         self.diction4db['in_work_frag']='not_frag' 
         self.diction4db['path_frag']='not_path' 
         self.diction4db['send']='not_send'
-        self.diction4db['dnld_link']='not_link' 
-        # создаем и передаем словарь значений в БД
+        self.diction4db['send2group_file_id']='not_id' 
+        self.diction4db['resend']='not_resend'
+        self.diction4db['resend_file_id']='not_id'
+        #
+        # создаем новую запись в таблице task 
         db=BaseDB(logger=self.Logger)
+        # записываем словарь значений в таблицу task 
         await db.insert_data('task', self.diction4db)
+        # выводим таблицу task
         await db.print_data('task')
     #
     # обрабатываем нажатие кнопки #4 не та ссылка y2b -> start
     async def call_NO_link(self, callback: types.CallbackQuery, state: FSMContext):
-        self.Logger.log_info(f'[call_NO_link] choice_user: {callback.data} ')
-        await callback.message.answer(text='Наберите команду /start или введите любой символ')
+        # self.Logger.log_info(f'[call_NO_link] choice_user: {callback.data} ')
+        msg = f'Наберите любой символ'
+        await callback.message.answer(msg)
         # убираем часики на кнопке, которую нажали
         await callback.answer() # 
         # Сбрасываем состояние
         await state.finish()
     #
-    # обрабатываем нажатие кнопки #5 ОК - повторное введение ссылки 
-    # async def link_repetition(self, callback: types.CallbackQuery, state: FSMContext):
-    #     self.Logger.log_info(f'[link_repetition] choice_user: {callback.data} ')
-    #     # Сбрасываем состояние
-    #     await state.finish()
-    #     await self.call_1_y2b(callback)
-# 
-    #
-    # обрабатываем нажатие кнопки #6 NO - повторное введение ссылки 
-    # async def link_NO_repetition(self, callback: types.CallbackQuery, state: FSMContext):
-    #     self.Logger.log_info(f'[call_2_level_4] choice_user: {callback.data} ')
-    #     # Отправляем сообщение пользователю
-    #     await callback.message.bot.send_message(chat_id=callback.message.chat.id, 
-    #                                             text='/start')
-    #     # Сбрасываем состояние
-    #     await state.finish()
-    #
-    # обрабатываем нажатие кнопкb #7 
-    # async def call_2_level_6(self, callback: types.CallbackQuery):
-    #     kb = KeyBoardClient(logger=self.Logger, row_width=1)
-    #     kb.menu_3_level() # загружаем меню третьего уровня
-    #     self.Logger.log_info(f'[call_2_level_6] choice_user: {callback.data} = {kb.name_button[callback.data]}')
-    #     self.Logger.log_info(f'[call_2_level_6] kb.countInstance: {kb.countInstance}')
-    #     # получаем из словаря наименования кнопок name_button[callback.data] 
-    #     # название раздела
-    #     await callback.message.answer(text=f'Выбран раздел: {kb.name_button[callback.data]}',
-    #                                   reply_markup=kb.keyboard)
-    #     # убираем часики на кнопке, которую нажали
-    #     await callback.answer() # 
-    #
-    # обрабатываем нажатие кнопкb #8
-    # async def call_2_level_7(self, callback: types.CallbackQuery):
-    #     kb = KeyBoardClient(logger=self.Logger, row_width=1)
-    #     kb.menu_3_level() # загружаем меню второго уровня
-    #     self.Logger.log_info(f'[call_2_level_7] choice_user: {callback.data} = {kb.name_button[callback.data]}')
-    #     self.Logger.log_info(f'[call_2_level_7] kb.countInstance: {kb.countInstance}')
-    #     # получаем из словаря наименования кнопок name_button[callback.data] 
-    #     # название раздела
-    #     await callback.message.answer(text=f'Выбран раздел: {kb.name_button[callback.data]}',
-    #                                   reply_markup=kb.keyboard)
-    #     # убираем часики на кнопке, которую нажали
-    #     await callback.answer() # 
-    #
+    # обрабатываем итоговое видео в группе
+    async def resend_video(self, message: types.Message):
+        video_id = message.video.file_id if message.video else None
+        full_name_frag = os.path.basename(message.caption)
+        name_frag=full_name_frag[:-4]
+        # print(f'video_id: {video_id} \n\nfull_name_frag: {full_name_frag} \n\nname_frag: {name_frag}')
+        # await message.answer(text=f'video_id: {video_id} \n\nfull_name_frag: {full_name_frag} \n\nname_frag: {name_frag}')
+        result = await self.Db.read_data_one('frag', 'name_frag', name_frag)
+        # if not result:
+        #     print(f'\n[Client_bot resend_video read_data_one] не прочитали name_frag из frag ')
+        #     return None
+        row = result.fetchone()
+        if not row:
+            print(f'\n[Client_bot resend_video result.fetchone()] нет строки в result из frag')
+            return None
+        chat_id = row.chat_id  
+        # if not chat_id:
+        #     print(f'\n[Client_bot resend_video row.chat_id] нет chat_id в row: {chat_id}')
+        #     return None
+        # await message.answer(text=f'chat_id: {chat_id}')
+        # отправляем видео пользователю
+        try:
+            resend = await bot.send_video(chat_id=chat_id, video=video_id)
+        except Exception as eR:
+            print(f'\nERROR[Client_bot resend_video bot.send_video] ERROR: {eR}')
+            self.Logger.log_info(f'\nERROR[Client_bot resend_video bot.send_video] ERROR: {eR}')
+            return None
+        if not resend:
+            print(f'\n[Client_bot resend_video bot.send_video] не переслали из группы файл пользователю ')
+            return None
+        # await message.answer(text=f'resend: {resend}')
+        # отмечаем в таблицах 
+        diction = {'resend': 'resended', 'resend_file_id': video_id}
+        if not await self.Db.update_table_resend(['task', 'frag'], name_frag, diction):
+            print(f'\n[Client_bot resend_video update_table_resend] не записали в таблицы [task, frag] отметки об отправке пользователю')
+            return None
+        # return video_id, resend
+
     # регистрация хэндлеров
-    def register_handlers_client(self):
-        # обрабатывает команду пользователя - /start
-        dp.register_message_handler(self.command_start, commands=['start'])
-        #  dp.register_callback_query_handler(self.call_start, lambda callback_query: callback_query.data == '/start')
-        
+    async def register_handlers_client(self):
         # обрабатываем нажатие кнопки СТАРТ 
         # предлагаем выбрать 'youtube' (#1) или 'свое видео' (#2) 
         dp.register_callback_query_handler(self.call_start, Text(contains='/start', ignore_case=True))
@@ -382,7 +323,6 @@ class Client:
         dp.register_callback_query_handler(self.call_my_video, Text(contains='2', ignore_case=True))
         #
         # обрабатывает ссылку youtube
-        #regexp_pattern = re.compile(r'(https?://)?(www\.)?(youtube\.com/v/.*|youtu\.be/.*|youtube\.com/attribution_link.*|youtube\.com/results\?.*)', re.IGNORECASE)
         regexp_pattern_link_youtube =  re.compile(r'(https?://)?(www\.)?(youtube\.com/(v|watch)\?.*|youtu\.be/.*|youtube\.com/attribution_link.*|youtube\.com/results\?.*)', re.IGNORECASE)
         dp.register_message_handler(self.youtube_link_handler, Regexp(regexp_pattern_link_youtube))
         #
@@ -393,19 +333,19 @@ class Client:
         dp.register_callback_query_handler(self.call_NO_link, Text(contains='4', ignore_case=True))
 
         # обрабатывает временные метки видео-фрагмента
-        #regexp_pattern = re.compile(r'(https?://)?(www\.)?(youtube\.com/v/.*|youtu\.be/.*|youtube\.com/attribution_link.*|youtube\.com/results\?.*)', re.IGNORECASE)
         regexp_pattern_timestamp =  re.compile(r'^\d{2}:\d{2}:\d{2}-\d{2}:\d{2}:\d{2}$', re.IGNORECASE)
         dp.register_message_handler(self.youtube_timestamp, Regexp(regexp_pattern_timestamp))
         #
         # обрабатываем нажатие кнопки ОК #7  timestamp
         dp.register_callback_query_handler(self.youtube_timestamp_OK, Text(contains='7', ignore_case=True))
-        # должен быть последним хэндлером, 
+        #  
+        # обрабатываем нажатие кнопки NО #8  timestamp
+        dp.register_callback_query_handler(self.youtube_link_OK, Text(contains='8', ignore_case=True))
+
+        # обрабатывает видео в группе
+        dp.register_message_handler(self.resend_video, content_types=types.ContentType.VIDEO)
+
         # ловит любые сообщения и вызывает кнопку старт
         dp.register_message_handler(self.any2start)
 
-        # обрабатываем нажатие кнопки #5 ОК - повторное введение ссылки 
-        #dp.register_callback_query_handler(self.link_repetition, Text(contains='5', ignore_case=True))
-        
-        # обрабатываем нажатие кнопки #6 NO - повторное введение ссылки 
-        #dp.register_callback_query_handler(self.link_NO_repetition, Text(contains='6', ignore_case=True))
 

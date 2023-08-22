@@ -21,6 +21,32 @@ class BaseDB:
     Аргументы:
     - logger: Logger
     - db_file='db_file.db'
+        
+        # Методы: type: <class 'sqlalchemy.engine.cursor.CursorResult'>
+        # fetchone(): Возвращает следующую строку результата запроса.
+        # fetchall(): Возвращает все строки результата запроса.
+        # fetchmany(size=None): Возвращает заданное количество строк результата запроса (по умолчанию размер указан в параметрах курсора).
+        # keys(): Возвращает список имен столбцов результата.
+        # close(): Закрывает результат (курсор).
+
+        # Атрибуты:
+        # rowcount: Возвращает количество строк, затронутых запросом.
+        # description: Список кортежей, представляющих описание столбцов результата. Каждый кортеж содержит информацию о столбце, такую как имя, тип и т.д.
+        # closed: Флаг, показывающий, закрыт ли результат.
+        
+        # Методы объектов <class 'sqlalchemy.engine.row.Row'>:
+        # items(): Возвращает пары ключ-значение для каждого столбца в строке.
+        # keys(): Возвращает имена столбцов в строке.
+        # values(): Возвращает значения столбцов в строке.
+        # get(key, default=None): Получение значения по имени столбца. Если столбец не существует, возвращается значение default.
+        # as_dict(): Возвращает строки в виде словаря, где ключи - это имена столбцов, а значения - значения столбцов.
+        # index(key): Возвращает позицию столбца с указанным именем в строке.
+        
+        # Атрибуты:
+        # keys(): Возвращает имена столбцов в строке.
+        # _fields: Атрибут, хранящий имена столбцов в строке.
+        # _data: Словарь, содержащий данные строки, где ключи - это имена столбцов, а значения - значения столбцов.
+
     """
     countInstance=0
 
@@ -183,24 +209,49 @@ class BaseDB:
 
     # Находим в таблице 'task' и 'frag' строки с path_frag
     # записываем словарь значений
-    async def update_table_link(self, name_table: str, 
+    async def update_table_path(self, name_tables: list, 
                                       path_frag: str,
                                       diction: dict):
-        table=self.table.get(name_table)
-        # Находим все строки с vid и записываем словарь значений
-        try:
-            async with self.Session() as session:
-                stmt = (update(table).
-                        where(table.c.path_frag == path_frag).
-                        values(diction))               
-                await session.execute(stmt)
-                await session.commit()
-                return path_frag, diction
-        except SQLAlchemyError as eR:
-            print(f'\nERROR [BaseDB: update_table_link] ERROR: {str(eR)}')
-            self.Logger.log_info(f'\nERROR [BaseDB: update_table_link] ERROR: {str(eR)}')
-            await session.rollback()
-            return None
+        for name_table in name_tables:
+            table=self.table.get(name_table)
+            # Находим все строки с путем к фрагменту и записываем словарь значений
+            try:
+                async with self.Session() as session: 
+                    stmt = (update(table).
+                            where(table.c.path_frag == path_frag).
+                            values(diction))               
+                    await session.execute(stmt)
+                    await session.commit()
+                    # return path_frag, diction
+            except SQLAlchemyError as eR:
+                print(f'\nERROR [BaseDB: update_table_link] ERROR: {str(eR)}')
+                self.Logger.log_info(f'\nERROR [BaseDB: update_table_link] ERROR: {str(eR)}')
+                await session.rollback()
+                return None
+        return path_frag, diction
+
+    # Находим в таблице 'task' и 'frag' строки с path_frag
+    # записываем словарь значений
+    async def update_table_resend(self, name_tables: list, 
+                                        name_frag: str,
+                                        diction: dict):
+        for name_table in name_tables:
+            table=self.table.get(name_table)
+            # Находим все строки с путем к фрагменту и записываем словарь значений
+            try:
+                async with self.Session() as session: 
+                    stmt = (update(table).
+                            where(table.c.name_frag == name_frag).
+                            values(diction))               
+                    await session.execute(stmt)
+                    await session.commit()
+                    return diction
+            except SQLAlchemyError as eR:
+                print(f'\nERROR [BaseDB: update_table_link] ERROR: {str(eR)}')
+                self.Logger.log_info(f'\nERROR [BaseDB: update_table_link] ERROR: {str(eR)}')
+                await session.rollback()
+                return None
+        
 
 
     # получаем все данные таблицы

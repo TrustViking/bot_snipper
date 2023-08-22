@@ -46,7 +46,7 @@ class Mov:
             os.makedirs(self.save_file_path)
     #
 
-    # создаем (дополняем) таблицу frag на базе task
+    # создаем (заполняем) таблицу frag на базе task
     async def insert_frag (self):
         # отбираем скачанные, но не отработанные ссылки в таблице 'task'
         try:
@@ -113,6 +113,10 @@ class Mov:
                         'in_work_frag': 'not_frag',
                         'name_frag': name_frag,
                         'path_frag': 'not_frag',
+                        'send': 'not_send',
+                        'send2group_file_id': 'not_id',
+                        'resend': 'not_resend',
+                        'resend_file_id': 'not_id',
                         }
             # записываем в таблицу frag новые задачи
             try:
@@ -239,7 +243,7 @@ async def main():
     print(f'\n**************************************************************************')
     print(f'\nБот готов обрабатывать видео')
     mov=Mov() 
-    minut=1
+    minut=0.3
     while True:
         #
         print(f'\nБот по отработке видео ждет {minut} минут(ы) ...')
@@ -262,5 +266,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    import asyncio
     asyncio.run(main())

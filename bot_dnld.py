@@ -38,7 +38,8 @@ class Dnld:
         #     
     def _create_dnld_directory(self):
         """
-        Создает директорию для хранения скачанных видеофайлов, если она не существует
+        Создает директорию для хранения скачанных видеофайлов, 
+        если она не существует
         """
         # dnld_dir = os.path.dirname(self.downloaded_file_path)
         if not os.path.exists(self.downloaded_file_path):
@@ -46,33 +47,6 @@ class Dnld:
     #
     # читаем ссылки из таблицы task, которые не обрабатывались
     async def set_vid4work(self):
-        '''
-        # Методы: type: <class 'sqlalchemy.engine.cursor.CursorResult'>
-        # fetchone(): Возвращает следующую строку результата запроса.
-        # fetchall(): Возвращает все строки результата запроса.
-        # fetchmany(size=None): Возвращает заданное количество строк результата запроса (по умолчанию размер указан в параметрах курсора).
-        # keys(): Возвращает список имен столбцов результата.
-        # close(): Закрывает результат (курсор).
-
-        # Атрибуты:
-        # rowcount: Возвращает количество строк, затронутых запросом.
-        # description: Список кортежей, представляющих описание столбцов результата. Каждый кортеж содержит информацию о столбце, такую как имя, тип и т.д.
-        # closed: Флаг, показывающий, закрыт ли результат.
-        
-        # Методы объектов <class 'sqlalchemy.engine.row.Row'>:
-        # items(): Возвращает пары ключ-значение для каждого столбца в строке.
-        # keys(): Возвращает имена столбцов в строке.
-        # values(): Возвращает значения столбцов в строке.
-        # get(key, default=None): Получение значения по имени столбца. Если столбец не существует, возвращается значение default.
-        # as_dict(): Возвращает строки в виде словаря, где ключи - это имена столбцов, а значения - значения столбцов.
-        # index(key): Возвращает позицию столбца с указанным именем в строке.
-        
-        # Атрибуты:
-        # keys(): Возвращает имена столбцов в строке.
-        # _fields: Атрибут, хранящий имена столбцов в строке.
-        # _data: Словарь, содержащий данные строки, где ключи - это имена столбцов, а значения - значения столбцов.
-        '''
-        
         # выбираем из таблицы 'task' ссылки, которые еще не обработаны  
         try:
             # rows type: <class 'sqlalchemy.engine.cursor.CursorResult'>
@@ -84,18 +58,17 @@ class Dnld:
             self.Logger.log_info(f'\nERROR [Dnld: videoid_dnld] ERROR: {str(eR)}')
             return None
         if not cursor_result_no: 
-            print(f'\n[Dnld: videoid_dnld] cursor_result_no is NONE')
+            # print(f'\n[Dnld: videoid_dnld] cursor_result_no is NONE')
             return None
         # вытаскиваем результаты запроса к БД
         # список объектов <class 'sqlalchemy.engine.row.Row'>
-        vid4work = set()
         #rows=[]
+        vid4work = set()
         rows=cursor_result_no.fetchall()
         #print(f'\n[Dnld: videoid_dnld] rows: {rows}, \ntype: {type(rows)} ')
         for row in rows:
             video_id=row.video_id
             vid4work.add(video_id)
-            #
         return vid4work
 
     # читаем ссылки из таблицы dnld_link, которые уже закачаны
@@ -109,7 +82,7 @@ class Dnld:
             self.Logger.log_info(f'\nERROR [Dnld: videoid_dnld] ERROR: {str(eR)}')
             return None
         if not cursor_result: 
-            print(f'\n[Dnld: videoid_dnld] cursor_result is NONE')
+            # print(f'\n[Dnld: videoid_dnld] cursor_result is NONE')
             return None
         # вытаскиваем результаты запроса к БД
         # список объектов <class 'sqlalchemy.engine.row.Row'>
@@ -123,7 +96,6 @@ class Dnld:
             video_id=row.video_id
             #print(f'\n[Dnld: videoid_dnld] video_id: \n{video_id}, \ntype video_id: {type(video_id)}')
             vid_dnld.add(video_id)
-
         return vid_dnld
     #
     # читаем ссылки из таблицы dnld_link, которые надо закачать
@@ -138,12 +110,12 @@ class Dnld:
             self.Logger.log_info(f'\nERROR [Dnld: videoid4dnld] ERROR: {str(eR)}')
             return None
         if not cursor_result: 
-            print(f'\n[Dnld: videoid4dnld] cursor_result is NONE')
+            # print(f'\n[Dnld: videoid4dnld] cursor_result is NONE')
             return None
         # вытаскиваем результаты запроса к БД
         # список объектов <class 'sqlalchemy.engine.row.Row'>
         vid4dnld = set()
-        rows=[]
+        # rows=[]
         rows=cursor_result.fetchall()
         for row in rows:
             # вытаскиваем значения video_id 
@@ -171,7 +143,7 @@ class Dnld:
         # оставляем id видео, которые есть в таблице task, но нет в таблице dnld_link
         vid_write_table = vid_work - vid_table
         if not vid_write_table:
-            print(f'\n[Dnld update_tables] пока нет новых закачек...')
+            # print(f'\n[Dnld update_tables] пока нет новых закачек...')
             return None
         #
         data=[]
@@ -206,7 +178,7 @@ class Dnld:
         # читаем ссылки из таблицы dnld_link, которые надо отработать
         vid4work = await self.videoid4dnld()
         if not vid4work:
-            print(f'\n[Dnld download_video vid4work] пока нет в таблице [dnld_link] ссылок на закачку')
+            # print(f'\n[Dnld download_video vid4work] пока нет в таблице [dnld_link] ссылок на закачку')
             return None
         # проверяемся на пересечении отработанных и не отработанных множествах таблицы dnld_link
         error_set=vid_dnld & vid4work
@@ -214,13 +186,13 @@ class Dnld:
             print(f'\nERROR [Dnld download_video] пересекаются отработанные и не отработанные закачки: {error_set}')
             #return None
         #
-        print(f'\n[Dnld download_video] есть список закачек на отработку: {vid4work}')
+        # print(f'\n[Dnld download_video] есть список закачек на отработку: {vid4work}')
         # создаем словарь {идентификатор : ютуб адрес}
         vid_url={}
         for vid in vid4work:
             # url_video=f'https://www.youtube.com/watch?v={vid}'
             vid_url={vid: f'https://www.youtube.com/watch?v={vid}'}
-        print(f'\n[Dnld download_video] словарь на отработку: {vid_url}')
+        # print(f'\n[Dnld download_video] словарь на отработку: {vid_url}')
         return vid_url
     # 
     # создаем список команд для yt_dlp
@@ -235,7 +207,7 @@ class Dnld:
                 'socket_timeout': 999999,
                 'no_playlist': True,
                 'outtmpl': path_save_video,
-                'progress_hooks': [self.progress_hook],
+                # 'progress_hooks': [self.progress_hook],
                 'nooverwrites': True,
                         }
             arg_list.append((ydl_opts, url, vid))
@@ -286,9 +258,9 @@ class Dnld:
     async def dnld_file(self, path: str, vid: str):
         list_file_dir=[(vid, fname) for fname in os.listdir(path) if vid in fname]
         if not list_file_dir:
-            print(f'[Dnld dnld_file] list_file_dir: is {list_file_dir} \nFile: {vid} not dowload')
+            # print(f'[Dnld dnld_file] list_file_dir: is {list_file_dir} \nFile: {vid} not dowload')
             return None
-        print(f'[Dnld dnld_file] Video_id {vid} download name: {list_file_dir[0][1]}')
+        # print(f'[Dnld dnld_file] Video_id {vid} download name: {list_file_dir[0][1]}')
         # Находим в таблице 'dnld_link' строки с vid и записываем словарь значений
         diction={'in_work_download': 'downloaded', 
                 'path_download': str(os.path.join(path, list_file_dir[0][1])),
@@ -300,7 +272,6 @@ class Dnld:
         if not await self.Db.update_table_vid('task', vid, diction):
             print(f'\nERROR [Dnld dnld_file] обновить task [in_work_download: downloaded] не получилось')
             return None
-        #
         return vid, list_file_dir[0][1]
     #
     # если есть в dnld_link, но нет на диске, скачиваем 
@@ -312,15 +283,16 @@ class Dnld:
         # список объектов <class 'sqlalchemy.engine.row.Row'>
         rows=async_results.fetchall()
         if not rows: 
-            print(f'\n[Dnld: check_dnld_file] В таблице [dnld_link] нет отработанных ссылок')
+            # print(f'\n[Dnld: check_dnld_file] В таблице [dnld_link] нет отработанных ссылок')
             return None
         # video_id (скачанные) из БД добавляем в множество - set()
         vid_dnld = {row.video_id for row in rows}
-        print(f'\n[Dnld: check_dnld_file] В таблице [dnld_link] закачаны ссылки {vid_dnld}')
+        # print(f'\n[Dnld: check_dnld_file] В таблице [dnld_link] закачаны ссылки {vid_dnld}')
         #  множество имен файлов, которые находятся на диске 
         set_file_dir=set(os.listdir(self.downloaded_file_path))
-        print(f'\n[Dnld: check_dnld_file] На диске закачано {len(set_file_dir)} файлов:')
-        for i in set_file_dir: print(f'{i}')
+        print(f'\n[Dnld: check_dnld_file] На диске закачано {len(set_file_dir)} файлов')
+        if len(set_file_dir)<30:
+            for i in set_file_dir: print(f'{i}')
         # выбираем файлы из БД, которые отмечены, но по факту не скачаны
         set_in_disk=set()
         for file_name in set_file_dir:
@@ -330,10 +302,11 @@ class Dnld:
         # из множества имен в БД вычитаем имена, которые есть на диске
         set_vid4dnld=vid_dnld-set_in_disk
         if not set_vid4dnld:
-            print(f'\n[Dnld check_dnld_file] БД совпадает с файлами на диске')
+            # print(f'\n[Dnld check_dnld_file] БД совпадает с файлами на диске')
             return None
         # есть файлы, которые не скачаны
-        print(f'\n[Dnld check_dnld_file] БД не совпадает с файлами на диске. \nНадо закачать {set_vid4dnld}')
+        print(f'\n[Dnld check_dnld_file] БД не совпадает с файлами на диске. '
+              f'\nНадо закачать {set_vid4dnld}')
         # вносим изменения в dnld_link, ссылки, которые по факту не закачаны
         diction={'in_work_download': 'not_download', 
                  'path_download': 'not_path',
@@ -355,16 +328,16 @@ class Dnld:
         # список объектов <class 'sqlalchemy.engine.row.Row'>
         rows=async_results.fetchall()
         if not rows: 
-            print(f'\n[Dnld: check_db_disk] В таблице [dnld_link] нет отработанных ссылок')
+            # print(f'\n[Dnld: check_db_disk] В таблице [dnld_link] нет отработанных ссылок')
             return None
         # video_id (не скачанные) из БД добавляем в множество - set()
         vid4dnld = {row.video_id for row in rows}
         print(f'\n[Dnld: check_db_disk] В таблице [dnld_link] не закачаны ссылки {vid4dnld}')
         #  множество имен файлов, которые находятся на диске 
         set_file_dir=set(os.listdir(self.downloaded_file_path))
-        print(f'\n[Dnld: check_db_disk] На диске закачано {len(set_file_dir)} файлов:')
-        for i in set_file_dir: 
-            print(f'{i}')
+        print(f'\n[Dnld: check_db_disk] На диске закачано {len(set_file_dir)} файлов')
+        if len(set_file_dir)<30:
+            for i in set_file_dir: print(f'{i}')
         # выбираем файлы из БД, которые скачаны, но не отмечены
         set_db_disk=[]
         for file_name in set_file_dir:
@@ -374,7 +347,7 @@ class Dnld:
         # из множества имен в БД вычитаем имена, которые есть на диске
         # set_vid4dnld=vid_dnld-set_in_disk
         if not set_db_disk:
-            print(f'\n[Dnld check_db_disk] dnld_link совпадает с файлами на диске')
+            # print(f'\n[Dnld check_db_disk] dnld_link совпадает с файлами на диске')
             return None
         # есть файлы, которые не отмечены
         print(f'\n[Dnld check_db_disk] dnld_link не совпадает с файлами на диске. \nНадо отметить {set_db_disk}')
@@ -397,7 +370,7 @@ class Dnld:
         # Отфильтровываем файлы, имена которых не заканчиваются на .mp4
         non_mp4_files = [file for file in set_file_dir if not file.endswith('.mp4')]
         if not non_mp4_files:
-            print(f'\n[Dnld delete_non_mp4_files] Не обнаружено временных файлов для удаления')
+            # print(f'\n[Dnld delete_non_mp4_files] Не обнаружено временных файлов для удаления')
             return None
         # Удаляем каждый из этих файлов
         for file in non_mp4_files:
@@ -450,17 +423,17 @@ async def main():
         
         # проверка есть ли видео для закачивания
         if not vid_url: 
-            print(f'\n[Dnld main] пока нет задач для закачек...')
-            dnld.Logger.log_info(f'\n[Dnld main] пока нет задач для закачек...')
+            # print(f'\n[Dnld main] пока нет задач для закачек...')
+            # dnld.Logger.log_info(f'\n[Dnld main] пока нет задач для закачек...')
             
             # если нет закачек, сверяем БД и файлы на диске
             # vid_dnld = await dnld.check_dnld_file() 
-            if await dnld.check_dnld_file():
-                await dnld.Db.print_data('task')
-                await dnld.Db.print_data('dnld_link')
-            if await dnld.check_db_disk():
+            await dnld.check_dnld_file()
                 # await dnld.Db.print_data('task')
-                await dnld.Db.print_data('dnld_link')
+                # await dnld.Db.print_data('dnld_link')
+            await dnld.check_db_disk()
+                # await dnld.Db.print_data('task')
+                # await dnld.Db.print_data('dnld_link')
 
             # удаляем временные файлы после скачивания dlp
             await dnld.delete_non_mp4_files()            
@@ -471,30 +444,29 @@ async def main():
         # скачиваем файлы 
         results = await dnld.dlp(vid_url)
         if not results:
-            print(f"\n[Dnld main] Ошибка при скачивании dnld.dlp(vid_url)")
+            print(f"\nERROR [Dnld main] Ошибка при скачивании dnld.dlp(vid_url)")
             continue
         # проверяем скачанные файлы на диске
         for result in results:
-            print(f"\n[Dnld main] Downloaded result: {result}")
+            # print(f"\n[Dnld main] Downloaded result: {result}")
             # проверяем скачал ли run_dlp файл на диск
             if not await dnld.dnld_file(*result):
                 print(f"\n[Dnld main] result: {result} update full_parth_vid is NONE")
 
-        print(f'\nСодержание таблиц в БД...')
-        await dnld.Db.print_data(name_table='task')
-        await dnld.Db.print_data(name_table='dnld_link')
+        # print(f'\nСодержание таблиц в БД...')
+        # await dnld.Db.print_data(name_table='task')
+        # await dnld.Db.print_data(name_table='dnld_link')
 
         # сверяем БД и файлы закачки
-        if await dnld.check_dnld_file():
-            await dnld.Db.print_data(name_table='task')
-            await dnld.Db.print_data(name_table='dnld_link')
-        if await dnld.check_db_disk():
+        await dnld.check_dnld_file()
             # await dnld.Db.print_data(name_table='task')
-            await dnld.Db.print_data(name_table='dnld_link')
+            # await dnld.Db.print_data(name_table='dnld_link')
+        await dnld.check_db_disk()
+            # await dnld.Db.print_data(name_table='task')
+            # await dnld.Db.print_data(name_table='dnld_link')
         # удаляем временные файлы после скачивания dlp
         await dnld.delete_non_mp4_files()
 
 
 if __name__ == "__main__":
-    import asyncio
     asyncio.run(main())
