@@ -291,8 +291,8 @@ class Dnld:
         #  множество имен файлов, которые находятся на диске 
         set_file_dir=set(os.listdir(self.downloaded_file_path))
         print(f'\n[Dnld: check_dnld_file] На диске закачано {len(set_file_dir)} файлов')
-        if len(set_file_dir)<30:
-            for i in set_file_dir: print(f'{i}')
+        # if len(set_file_dir)<30:
+        #     for i in set_file_dir: print(f'{i}')
         # выбираем файлы из БД, которые отмечены, но по факту не скачаны
         set_in_disk=set()
         for file_name in set_file_dir:

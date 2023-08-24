@@ -1,13 +1,14 @@
 
 from time import sleep, time
 from datetime import datetime
+import datetime as dt
 from aiogram import types
-from magic_filter import F
+from magic_filter import F, MagicFilter
 
-from aiogram.dispatcher.filters import Text, Command
-from aiogram.dispatcher.filters import Regexp
+from aiogram.dispatcher.filters import Text, Regexp, CommandStart, ChatTypeFilter, Command
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher import FSMContext
+from aiogram.types import ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton 
 #
 import re, os, sys
 #
@@ -18,7 +19,7 @@ from keyboards.client_kb import KeyBoardClient
 from y2b4bot.you2b import You2b
 from data_base.base_db import BaseDB
 
-class Client_bot:
+class Client2bot:
     """
     Создаем для telegram-bot хэндлеры клиента:
 
@@ -28,14 +29,13 @@ class Client_bot:
     countInstance=0
     #
     def __init__(self, logger: Logger):
-        Client_bot.countInstance+=1
-        self.countInstance=Client_bot.countInstance
+        Client2bot.countInstance+=1
+        self.countInstance=Client2bot.countInstance
         self.Logger = logger
         self.Db=BaseDB(logger=self.Logger)
         # Устанавливаем состояние ожидания подтверждения
-        self.Confirmation = State()
-
-        self._new_client()
+        self.State = State()
+        self.group = os.getenv('TELEGRAM_GROUP')
         # словарь для создания и записи строки в БД про ссылку youtube
         self.youtube_info=None
         self.youtube_link=''
@@ -64,19 +64,21 @@ class Client_bot:
         self.timestamp_end_dt=None
         self.segment_duration=''
         #
+        self._new_client()
+        
         #
     # New Client
     def _new_client(self):
         print(f'[_new_client] Client# {self.countInstance}')
         self.Logger.log_info(f'[_new_client] Client# {self.countInstance}')
     #
-    #
     # обработчик любого сообщения, кроме  - /start
     async def any2start(self, message: types.Message):
         kb = KeyBoardClient(logger=self.Logger, row_width=1)
         kb.start_button() # загружаем кнопку Старт в клавиатуру
         msg=(f"Для СТАРТА нажмите \U0001F447 на кнопку \U0001F680 *ПУСК*\ ")
-        await message.answer(text=message.chat.id)
+        # присылает chat_id==user_id
+        # await message.answer(text=message.chat.id) # присылает chat_id==user_id
         await bot.send_message(message.from_user.id, msg, parse_mode="MarkdownV2", reply_markup=kb.keyboard)
         #
     # обрабатываем нажатие кнопки СТАРТ 
@@ -156,7 +158,7 @@ class Client_bot:
             # отправляем клавиатуру подтверждения 
             await bot.send_message(message.from_user.id, mes4user, reply_markup=kb.keyboard)
             # Устанавливаем состояние ожидания подтверждения
-            await self.Confirmation.set()
+            await self.State.set()
         else: 
             print(f'[youtube_link_handler] There are empty fields in table \ndiction4db: {str(self.diction4db)}')
             # добавляем кнопки ОК & NO для youtube_link_handler
@@ -168,7 +170,7 @@ class Client_bot:
                       f'Будете вводить другую ссылку?')
             await bot.send_message(message.from_user.id, mes4user, reply_markup=kb.keyboard)
             # Устанавливаем состояние ожидания подтверждения
-            await self.Confirmation.set()
+            await self.State.set()
         #
     # обрабатываем нажатие кнопки ОК #3 youtube_link 
     async def youtube_link_OK(self, callback: types.CallbackQuery, state: FSMContext):
@@ -217,7 +219,7 @@ class Client_bot:
                   f'Нажмите \U0001F447 кнопку ОК, если подтверждаете')
         await bot.send_message(message.from_user.id, mes4user, reply_markup=kb.keyboard)
         # Устанавливаем состояние ожидания подтверждения
-        await self.Confirmation.set()
+        await self.State.set()
     #
     # обрабатываем нажатие кнопки ОК #7  timestamp
     async def youtube_timestamp_OK(self, callback: types.CallbackQuery, state: FSMContext):
@@ -249,6 +251,8 @@ class Client_bot:
         self.diction4db['in_work_download']='not_download'
         self.diction4db['path_download']='not_path'
         self.diction4db['in_work_frag']='not_frag' 
+        self.diction4db['num_frag']=2 
+        self.diction4db['name_frag']='not_name.frag' 
         self.diction4db['path_frag']='not_path' 
         self.diction4db['send']='not_send'
         self.diction4db['send2group_file_id']='not_id' 
@@ -256,11 +260,11 @@ class Client_bot:
         self.diction4db['resend_file_id']='not_id'
         #
         # создаем новую запись в таблице task 
-        db=BaseDB(logger=self.Logger)
+        # db=BaseDB(logger=self.Logger)
         # записываем словарь значений в таблицу task 
-        await db.insert_data('task', self.diction4db)
+        await self.Db.insert_data('task', self.diction4db)
         # выводим таблицу task
-        await db.print_data('task')
+        await self.Db.print_data('task')
     #
     # обрабатываем нажатие кнопки #4 не та ссылка y2b -> start
     async def call_NO_link(self, callback: types.CallbackQuery, state: FSMContext):
@@ -275,40 +279,41 @@ class Client_bot:
     # обрабатываем итоговое видео в группе
     async def resend_video(self, message: types.Message):
         video_id = message.video.file_id if message.video else None
-        full_name_frag = os.path.basename(message.caption)
-        name_frag=full_name_frag[:-4]
-        # print(f'video_id: {video_id} \n\nfull_name_frag: {full_name_frag} \n\nname_frag: {name_frag}')
-        # await message.answer(text=f'video_id: {video_id} \n\nfull_name_frag: {full_name_frag} \n\nname_frag: {name_frag}')
+        # full_name_frag = os.path.basename(message.caption)
+        # name_frag=full_name_frag[:-4]
+        name_frag=os.path.basename(message.caption)[:-4] if message.caption else 'no_name.mp4'
         result = await self.Db.read_data_one('frag', 'name_frag', name_frag)
-        # if not result:
-        #     print(f'\n[Client_bot resend_video read_data_one] не прочитали name_frag из frag ')
-        #     return None
         row = result.fetchone()
         if not row:
-            print(f'\n[Client_bot resend_video result.fetchone()] нет строки в result из frag')
+            print(f'\n[Client2bot resend_video result.fetchone()] нет строки в result из frag')
             return None
         chat_id = row.chat_id  
-        # if not chat_id:
-        #     print(f'\n[Client_bot resend_video row.chat_id] нет chat_id в row: {chat_id}')
-        #     return None
-        # await message.answer(text=f'chat_id: {chat_id}')
         # отправляем видео пользователю
         try:
             resend = await bot.send_video(chat_id=chat_id, video=video_id)
         except Exception as eR:
-            print(f'\nERROR[Client_bot resend_video bot.send_video] ERROR: {eR}')
-            self.Logger.log_info(f'\nERROR[Client_bot resend_video bot.send_video] ERROR: {eR}')
+            print(f'\nERROR[Client2bot resend_video bot.send_video] ERROR: {eR}')
+            self.Logger.log_info(f'\nERROR[Client2bot resend_video bot.send_video] ERROR: {eR}')
             return None
         if not resend:
-            print(f'\n[Client_bot resend_video bot.send_video] не переслали из группы файл пользователю ')
+            print(f'\n[Client2bot resend_video bot.send_video] не переслали из группы файл пользователю ')
             return None
-        # await message.answer(text=f'resend: {resend}')
-        # отмечаем в таблицах 
+        # отмечаем в таблицах пересылку сообщения
         diction = {'resend': 'resended', 'resend_file_id': video_id}
         if not await self.Db.update_table_resend(['task', 'frag'], name_frag, diction):
-            print(f'\n[Client_bot resend_video update_table_resend] не записали в таблицы [task, frag] отметки об отправке пользователю')
+            print(f'\n[Client2bot resend_video update_table_resend] не записали в таблицы [task, frag] отметки об отправке пользователю')
             return None
-        # return video_id, resend
+        #
+        # удаляем из группы пересланое видео, чтобы не засорять группу
+        chat_message_id=message.message_id
+        print(f'\n[Client2bot resend_video bot.send_video] chat_message_id: {chat_message_id}')
+        try:
+            if not await bot.delete_message(chat_id=self.group, message_id=chat_message_id):
+                await bot.send_message(chat_id=self.group,
+                                       text=f'\n[Client2bot resend_video] Не получилось удалить крайнее пересланое видео id: {chat_message_id}')
+        except Exception as eR:
+            print(f'\nERROR[Client2bot resend_video] ERROR: {eR}')
+            self.Logger.log_info(f'\nERROR[Client2bot resend_video] ERROR: {eR}')
 
     # регистрация хэндлеров
     async def register_handlers_client(self):
@@ -343,6 +348,7 @@ class Client_bot:
         dp.register_callback_query_handler(self.youtube_link_OK, Text(contains='8', ignore_case=True))
 
         # обрабатывает видео в группе
+        # dp.register_message_handler(self.resend_video, MagicFilter())
         dp.register_message_handler(self.resend_video, content_types=types.ContentType.VIDEO)
 
         # ловит любые сообщения и вызывает кнопку старт

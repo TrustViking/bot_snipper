@@ -32,8 +32,10 @@ table_task = Table(
     #
     Column("in_work_download", String(30)), # downloaded or not_download
     Column("path_download", String(200)), # /path/ or not_path
-    Column("in_work_frag", String(30)), # frag or not_frag
-    Column("path_frag", String(300)), # /path/ or not_path
+    Column("in_work_frag", String(30)), # fraged or not_frag
+    Column("num_frag", Integer), # num or not_num
+    Column("name_frag", String(300)), # z4vMgA7DOyg_6108894... or not_name.frag
+    Column("path_frag", String(300)), # /path/z4vMgA7DOyg.mp4 or not_path
     Column("send", String(20)), # sended or not_send
     Column("send2group_file_id", String(300)), # id or not_id
     Column("resend", String(20)), # resended or not_resend
@@ -75,8 +77,9 @@ table_frag = Table(
     Column("in_work_download", String(30)), # downloaded or not_download
     Column("path_download", String(200)), # /path/ or not_path
     Column("in_work_frag", String(30)), # fraged or not_frag
-    Column("name_frag", String(300)), # 
-    Column("path_frag", String(300)), # /path/ or not_frag
+    Column("num_frag", Integer), # num or not_num
+    Column("name_frag", String(300)), # z4vMgA7DOyg_6108894... or not_name.frag
+    Column("path_frag", String(300)), # /path/z4vMgA7DOyg.mp4 or not_path
     Column("send", String(20)), # sended or not_send
     Column("send2group_file_id", String(300)), # id or not_id
     Column("resend", String(20)), # resended or not_resend

@@ -46,6 +46,33 @@ class Mov:
             os.makedirs(self.save_file_path)
     #
 
+    # метод проверки строки из таблицы frag
+    async def check_table_frag (self, row):
+            try:
+                results_check = await self.Db.read_data_two ( 
+                                        name_table='frag', 
+                                        one_column_name='date_message', 
+                                        one_params_status=row.date_message,
+                                        two_column_name='user_id', 
+                                        two_params_status=row.user_id,
+                                        )
+            except Exception as eR:
+                print(f'\nERROR[Mov check_table_frag] ERROR: {eR}') 
+                self.Logger.log_info(f'\nERROR[Mov check_table_frag] ERROR: {eR}') 
+                return None
+            row_check=results_check.fetchone()
+            if row_check and len(row_check):
+                if row.date_message==row_check.date_message and row.user_id==row_check.user_id:
+                    print(f'\n[Mov: check_table_frag] В таблице [frag] повторяется задача: {row_check}\n'
+                          f'date_message: {row.date_message} - check: {row_check.date_message}\n'
+                          f'user_id: {row.user_id} - check {row_check.user_id}')
+                    return None
+                else: 
+                    print(f'\n[Mov: check_table_frag] row_check: {row_check} \nrow: {row} ')
+                    return None
+            else: 
+                return row
+
     # создаем (заполняем) таблицу frag на базе task
     async def insert_frag (self):
         # отбираем скачанные, но не отработанные ссылки в таблице 'task'
@@ -64,40 +91,37 @@ class Mov:
         # список объектов <class 'sqlalchemy.engine.row.Row'>
         rows=async_results.fetchall()
         if not rows: 
-            print(f'\n[Mov: insert_frag] В таблице [task] нет ссылок для фрагментации')
+            # print(f'\n[Mov: insert_frag] В таблице [task] нет ссылок для фрагментации')
             return None
-        # делаем список кортежей date_message и uid
-        date_message_uid = [(row.date_message, row.user_id, row) for row in rows]
+        # делаем список кортежей date_message, uid и row
+        # date_message_uid_row = [(row.date_message, row.user_id, row) for row in rows]
         data=[] # список записанных строчек в таблицу frag
-        for date_message, user_id, row in date_message_uid:
-            print(f'\n[Mov: insert_frag] проверяем в таблице [frag] date_message: {date_message} user_id: {user_id}'
-                  f'row: {row}')
-            try:
-                async_results_check = await self.Db.read_data_two ( 
-                                            name_table='frag', 
-                                            one_column_name='date_message', 
-                                            one_params_status=date_message,
-                                            two_column_name='user_id', 
-                                            two_params_status=user_id,
-                                            )
-            except Exception as eR:
-                print(f'\nERROR[Mov insert_frag read_data_two frag] ERROR: {eR}') 
-                self.Logger.log_info(f'\nERROR[Mov insert_frag read_data_two frag] ERROR: {eR}') 
-                return None
-            # rows_table=async_results_table.fetchall()
-            row_check=async_results_check.fetchone()
-            print(f'\n[Mov: insert_frag]  row_check: {row_check} type {type(row_check)}')
-            if row_check and len(row_check):
-                if date_message==row_check.date_message and user_id==row_check.user_id:
-                    print(f'\n[Mov: insert_frag] В таблице [frag] повторяется задача: {row_check}\n'
-                          f'date_message: {date_message} - check: {row_check.date_message}\n'
-                          f'user_id: {user_id} - check {row_check.user_id}')
-                    continue
+        for row in rows:
+            # print(f'\n[Mov: insert_frag] проверяем в таблице [frag] date_message: {date_message} user_id: {user_id}'
+            #       f'row: {row}')
+            # results_check = await self.Db.read_data_two ( 
+            #                             name_table='frag', 
+            #                             one_column_name='date_message', 
+            #                             one_params_status=row.date_message,
+            #                             two_column_name='user_id', 
+            #                             two_params_status=row.user_id,
+            #                             )
+            # row_check=results_check.fetchone()
+            # # print(f'\n[Mov: insert_frag]  row_check: {row_check} type {type(row_check)}')
+            # if row_check and len(row_check):
+            #     if row.date_message==row_check.date_message and row.user_id==row_check.user_id:
+            #         print(f'\n[Mov: insert_frag] В таблице [frag] повторяется задача: {row_check}\n'
+            #               f'date_message: {row.date_message} - check: {row_check.date_message}\n'
+            #               f'user_id: {row.user_id} - check {row_check.user_id}')
+            
+            # проверяем на повторение записи в таблице frag
+            if not await self.check_table_frag(row): continue
+            #
             # video_id (скачанные и не фрагментированные) -> в таблицу frag
             str_name=str(row.video_id + '_' + row.user_id + row.date_message)
-            print(f'\n[Mov: insert_frag] str_name: {str_name}')
+            # print(f'\n[Mov: insert_frag] str_name: {str_name}')
             name_frag="".join(str_name.replace(":", "").replace(" ", "").replace("-", ""))
-            print(f'\n[Mov: insert_frag] name_frag: {name_frag}')
+            # print(f'\n[Mov: insert_frag] name_frag: {name_frag}')
             diction = {
                         'date_message': row.date_message,
                         'username': row.username,
@@ -111,6 +135,7 @@ class Mov:
                         'in_work_download': row.in_work_download,
                         'path_download': row.path_download,
                         'in_work_frag': 'not_frag',
+                        'num_frag': 0,
                         'name_frag': name_frag,
                         'path_frag': 'not_frag',
                         'send': 'not_send',
@@ -127,6 +152,11 @@ class Mov:
                 print(f'\nERROR[Mov insert_frag insert_data] ERROR: {eR}') 
                 self.Logger.log_info(f'\nERROR[Mov insert_frag insert_data] ERROR: {eR}') 
                 return None
+            #  записываем имя фрагмента в таблицу task          
+            diction = {'name_frag': name_frag}
+            if not await self.Db.update_table_date(['task'], row.date_message, row.user_id, diction):
+                print(f'\n[Mov insert_frag] не записали {name_frag} в таблицу [task]')
+                continue
             data.append(diction)
         return data
 
@@ -226,16 +256,13 @@ class Mov:
                 print(f'\n[Mov: work_frag] не получилось записать фрагмент: {name_frag}')
                 continue
             diction = {'in_work_frag': 'fraged', 'path_frag': save_full_path}
-            if not await self.Db.update_table_date('task', 
-                                                   date_message, 
-                                                   user_id, 
-                                                   diction):
+            if not await self.Db.update_table_date(['task', 'frag'], date_message, user_id, diction):
                 print(f'\n[Mov: work_frag] не получилось записать в таблицу task: {save_full_path}')
-            if not await self.Db.update_table_date('frag', 
-                                                   date_message, 
-                                                   user_id, 
-                                                   diction):
-                print(f'\n[Mov: work_frag] не получилось записать в таблицу frag: {save_full_path}')
+            # if not await self.Db.update_table_date('frag', 
+            #                                        date_message, 
+            #                                        user_id, 
+            #                                        diction):
+            #     print(f'\n[Mov: work_frag] не получилось записать в таблицу frag: {save_full_path}')
         return date_messages, user_ids, names_frags 
 #
 # MAIN **************************

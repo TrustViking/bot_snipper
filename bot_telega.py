@@ -5,7 +5,7 @@ from aiogram.utils import executor
 #
 from bot_env.create_obj4bot import dp
 from bot_env.mod_log import Logger
-from handlers.client import  Client_bot
+from handlers.client import  Client2bot
 #
 #
 class Telega:
@@ -22,7 +22,7 @@ class Telega:
         self.Logger = Logger(log_file=log_file, log_level=log_level)
         self._print()
         # Client
-        self.client = Client_bot(logger=self.Logger)
+        self.client = Client2bot(logger=self.Logger)
         #self._client_work()
     #
     # выводим № объекта
