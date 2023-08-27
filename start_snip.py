@@ -7,9 +7,9 @@ import psutil
 import pynvml
 import asyncio, os, sys, logging
 import subprocess
-from concurrent.futures import ProcessPoolExecutor
+# from concurrent.futures import ProcessPoolExecutor
 from bot_env.mod_log import Logger
-from data_base.base_db import BaseDB
+# from data_base.base_db import BaseDB
 
 class Start:
     """Module for START"""
@@ -21,13 +21,9 @@ class Start:
                  max_download=3,
                  ):
         Start.countInstance += 1
-        # надо изучить вариант ниже
-        # self.countInstance = Y2b.countInstance = getattr(Y2b, 'countInstance', 0) + 1
         self.countInstance = Start.countInstance
         # Logger
         self.Logger = Logger(log_file=log_file, log_level=log_level)
-        # self.db = BaseDB(logger=self.Logger)
-        # self.diction4db={}
         self.max_download = max_download
         self._print()
 
@@ -71,8 +67,6 @@ async def main():
         os.path.join(sys.path[0], 'bot_dnld.py'),
         os.path.join(sys.path[0], 'bot_mov.py'),
         os.path.join(sys.path[0], 'bot_sender.py'),
-        # os.path.join(sys.path[0], 'server.py'),
-
     ]
     #
     print(f'\nСтарт приложения...') 
@@ -102,68 +96,4 @@ if __name__ == "__main__":
     asyncio.run(main())
 
 
-
-
-
-    # # состояние памяти
-    # def memory(self):
-    #     print (f'****************************************************************')
-    #     print (f'*Data RAM {os.path.basename(sys.argv[0])}: [{psutil.virtual_memory()[2]}%]')
-    #     # получение количества доступных устройств
-    #     pynvml.nvmlInit()
-    #     deviceCount = pynvml.nvmlDeviceGetCount()
-    #     print (f'\ndeviceCount [{deviceCount}]')
-    #     # для каждого устройства вывод информации о загрузке памяти
-    #     for i in range(deviceCount):
-    #         handle = pynvml.nvmlDeviceGetHandleByIndex(i)
-    #         #print (f'\nhandle [{handle}]')
-    #         meminfo = pynvml.nvmlDeviceGetMemoryInfo(handle)
-    #         #print (f'meminfo [{meminfo}]')
-    #         print(f"#GPU [{i}]: used memory [{int(meminfo.used / meminfo.total * 100)}%]")
-    #         print (f'****************************************************************\n')
-
-    # # запускаем работу скриптов
-    # def run_script(self, script):
-    #     #
-    #     self.command = f'{script}'
-    #     print(f'[run_script] command: {script}')
-    #     # не строка, а список команд, когда shell=False, т.е. без оболочки
-    #     process = subprocess.Popen(self.command, shell=True) 
-
-
-# # MAIN **************************
-# async def main():
-#     # список скриптов для выполнения
-#     path_scripts1=os.path.join(sys.path[0], 'bot_make_db_v1.py')
-#     path_scripts2=os.path.join(sys.path[0], 'bot_telega_v1.py')
-#     path_scripts3=os.path.join(sys.path[0], 'bot_y2b_v1.py')
-#     scripts = [
-#                path_scripts1, 
-#                path_scripts2, 
-#                path_scripts3,
-#                ] 
-#     #
-#     print(f'Старт приложения...')
-#     print (f'\n==============================================================================\n')
-#     print (f'File: [{os.path.basename(sys.argv[0])}]')
-#     print (f'Path: [{sys.path[0]}]') 
-#     # 
-#     start=Start(max_download=5) # создаем объект класса 
-#     # проверка памяти
-#     print (f'Data memory: [{psutil.virtual_memory()}]')
-#     start.memory()
-#     #
-#     # Запускаем процессы скачивания асинхронно
-#     loop = asyncio.get_event_loop()
-#     tasks = []
-#     with ProcessPoolExecutor(max_workers=start.max_download) as executor:
-#         for script in scripts:
-#             task = loop.run_in_executor(executor, start.run_script, script)
-#             tasks.append(task)
-
-#         # Ожидаем завершения всех процессов
-#         await asyncio.gather(*tasks)
-
-# if __name__ == "__main__":
-#     asyncio.run(main())
 

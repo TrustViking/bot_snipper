@@ -20,8 +20,5 @@ token=os.getenv('TELEGRAM_TOKEN')
 bot=Bot(token)
 dp=Dispatcher(bot, storage=storage_mem)
 
-# #
-# api_id = os.getenv('TELEGRAM_API_ID')
-# api_hash = os.getenv('TELEGRAM_API_HASH')
 
 

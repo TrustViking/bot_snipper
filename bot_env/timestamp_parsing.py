@@ -105,12 +105,8 @@ class ParseTime:
             s, iso8601 = iso8601.split('S', 1)
             seconds=int(s)
         self.seconds_duration=str(seconds+minutes*60+hours*60*60)
-        # datetime выдает 1900-01-01 00:03:00, не смотря на "%H:%M:%S"
         self.datatime_duration=datetime.strptime(f'{h}:{m}:{s}', "%H:%M:%S")
-        print(f'[format_iso8601_sec_dt] seconds_duration: {self.seconds_duration}')
-        print(f'[format_iso8601_sec_dt] datatime_duration: {self.datatime_duration}')
         return self.seconds_duration, self.datatime_duration
-        #           
         #
     # переводим секунды в ММ:СС
     def format_sec2minuts(self, time_sec: str = None):

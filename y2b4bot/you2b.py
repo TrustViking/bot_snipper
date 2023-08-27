@@ -1,5 +1,4 @@
-import os
-import re
+import os, re
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from bot_env.mod_log import Logger
@@ -23,7 +22,6 @@ class You2b:
         #
         self.response=None
         self.video_info = ''
-        #self.description = ''
         self.video_url = ''
         self.channel_title = '' 
         self.video_title = ''
@@ -31,11 +29,11 @@ class You2b:
         self.duration_iso8601 = ''
         #
         self.api_key=os.getenv('Y2B_API_KEY')
-        #self._print_API_KEY()
+        #self._print_API_KEY() # если надо вывести, то раскомментировать
         #
         self.video_id=self._extract_video_id()
         self._check_youtube_link()
-        self._print_fields() 
+        # self._print_fields() # если надо вывести поля, то раскомментировать
         #
     #
     # выводим № объекта
@@ -55,16 +53,8 @@ class You2b:
     def _extract_video_id(self):
         # Паттерн для поиска идентификатора видео
         pattern = r'(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&]{11})'
-
         # Ищем совпадения с паттерном в ссылке
         match = re.search(pattern, self.url)
-        #Return a list of all non-overlapping matches in the string
-        #match_all = re.findall(pattern, self.url)
-        #print(f'[extract_video_id] match.group(0): {str(match.group(0))}')
-        #self.Logger.log_info(f'[extract_video_id] match: {str(match_all)}')
-        # match.group(0): youtu.be/m0ZRms4p7fc
-        # match.group(1): m0ZRms4p7fc
-        #
         video_id=None
         if match:
             # Получаем найденный video_id, match.group(1): m0ZRms4p7fc, type(video_id): <class 'str'>
@@ -112,20 +102,14 @@ class You2b:
             return None
         #
         # Извлечение данных
-        #self.video_info = self.response['items'][0]['snippet']
         item=self.response.get('items', None)
-        # проверяем video_id
         video_id=item[0].get('id', None)
+        # проверяем video_id
         if video_id != self.video_id: 
             print(f'item[0].get("id") {video_id} != {self.video_id} self.video_id')
             return None
-        #print(f'\nitem: {item}\n')
-        #print(f'\nitem[0]: {item[0]}\n')
         self.video_info=item[0].get('snippet', None)
         print(f'\nvideo_info: {self.video_info}\n')
-        # берем только первые 100 знаков описания
-        #end_description=1000
-        #self.description = self.video_info['description'][:end_description] 
         self.video_url = f'https://www.youtube.com/watch?v={self.video_id}'
         self.channel_title = self.video_info.get('channelTitle', None)
         self.video_title = self.video_info.get('title', None)
@@ -133,7 +117,6 @@ class You2b:
         contentDetails=item[0].get('contentDetails', None)
         if contentDetails:
             self.duration_iso8601 = contentDetails.get('duration', None)
-        #self.duration_iso8601 = self.response['items'][0]['contentDetails']['duration']
     # вывод полей
     def _print_fields(self):
         #print(f'[_print_fields] video_info: {str(self.video_info)} \ndescription: {str(self.description)}')
@@ -142,6 +125,4 @@ class You2b:
         print(f'[_print_fields] video_title: {str(self.video_title)} ')
         print(f'[_print_fields] default_audio_language: {str(self.default_audio_language)}')
         print(f'[_print_fields] duration_iso8601: {str(self.duration_iso8601)}')
-        #print(f'\n\n [_print_fields] response: {str(self.response)}\n\n')
-        #self.Logger.log_info(f'[check_youtube_link] response: {str(response)}')
 

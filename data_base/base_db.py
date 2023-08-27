@@ -165,23 +165,26 @@ class BaseDB:
             # await session.rollback()
             return None
     #
-    # Находим в таблице 'dnld_link', 'task' строки с vid и записываем словарь значений
-    async def update_table_vid(self, name_table: str, vid: str, diction: dict):
-        table=self.table.get(name_table)
-        # Находим все строки с vid и записываем словарь значений
-        try:
-            async with self.Session() as session:
-                stmt = (update(table).
-                        where(table.c.video_id == vid).
-                        values(diction))
-                await session.execute(stmt)
-                await session.commit()
-                return vid, diction
-        except SQLAlchemyError as eR:
-            print(f'\nERROR [BaseDB: update_table] ERROR: {str(eR)}')
-            self.Logger.log_info(f'\nERROR [BaseDB: update_table] ERROR: {str(eR)}')
-            await session.rollback()
-            return None
+    # Находим в таблице 'dnld', 'task' строки с vid и записываем словарь значений
+    async def update_table_vid(self, name_tables: list, vid: str, diction: dict):
+        list_res=[]
+        for name_table in name_tables:
+            table=self.table.get(name_table)
+            # Находим все строки с vid и записываем словарь значений
+            try:
+                async with self.Session() as session:
+                    stmt = (update(table).
+                            where(table.c.video_id == vid).
+                            values(diction))
+                    await session.execute(stmt)
+                    await session.commit()
+                    list_res.append(diction)
+            except SQLAlchemyError as eR:
+                print(f'\nERROR [BaseDB: update_table] ERROR: {str(eR)}')
+                self.Logger.log_info(f'\nERROR [BaseDB: update_table] ERROR: {str(eR)}')
+                await session.rollback()
+                return None
+        return list_res
 
     # Находим в таблице 'task' и 'frag' строки с date_message и user_id
     # записываем словарь значений
@@ -264,11 +267,12 @@ class BaseDB:
         try:
             async with self.Session() as session:
                 async_results = await session.execute(select(table))
+                return async_results
         except SQLAlchemyError as eR:
             print(f'\nERROR [BaseDB: data_table] ERROR: {str(eR)}')
             self.Logger.log_info(f'[BaseDB: data_table] ERROR: {str(eR)}')
-            session.rollback()
-        return async_results
+            return None
+            # session.rollback()
     #
     # Выводим все данные таблицы
     async def print_data(self, name_table: str):

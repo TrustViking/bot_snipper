@@ -1,17 +1,11 @@
 
-from time import sleep, time
-from datetime import datetime
-import datetime as dt
+import re, os
+from time import time
 from aiogram import types
-from magic_filter import F, MagicFilter
-
-from aiogram.dispatcher.filters import Text, Regexp, CommandStart, ChatTypeFilter, Command
-from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.dispatcher.filters import Text, Regexp, Command
+from aiogram.dispatcher.filters.state import State
 from aiogram.dispatcher import FSMContext
-from aiogram.types import ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton 
-#
-import re, os, sys
-#
+# from aiogram.types import ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton 
 from bot_env.mod_log import Logger
 from bot_env.create_obj4bot import bot, dp
 from bot_env.timestamp_parsing import ParseTime
@@ -36,9 +30,12 @@ class Client2bot:
         # Устанавливаем состояние ожидания подтверждения
         self.State = State()
         self.group = os.getenv('TELEGRAM_GROUP')
+        # В разметке MarkdownV2 для Telegram некоторые символы являются специальными
+        #  и должны быть экранированы обратным слешем (\). 
+        self.special_chars = "_*[]()~>#+-=|{}.!" 
         # словарь для создания и записи строки в БД про ссылку youtube
         self.youtube_info=None
-        self.youtube_link=''
+        # self.youtube_link=''
         self.video_id=''
         self.video_title=''
         self.video_duration=''
@@ -76,10 +73,12 @@ class Client2bot:
     async def any2start(self, message: types.Message):
         kb = KeyBoardClient(logger=self.Logger, row_width=1)
         kb.start_button() # загружаем кнопку Старт в клавиатуру
-        msg=(f"Для СТАРТА нажмите \U0001F447 на кнопку \U0001F680 *ПУСК*\ ")
+        mes4user=(f"Для СТАРТА нажмите \U0001F447 на кнопку \U0001F680 ПУСК ")
         # присылает chat_id==user_id
         # await message.answer(text=message.chat.id) # присылает chat_id==user_id
-        await bot.send_message(message.from_user.id, msg, parse_mode="MarkdownV2", reply_markup=kb.keyboard)
+        # for char in self.special_chars:
+        #     mes4user = mes4user.replace(char, f"\\{char}")
+        await bot.send_message(message.from_user.id, mes4user, reply_markup=kb.keyboard)
         #
     # обрабатываем нажатие кнопки СТАРТ 
     # предлагаем выбрать 'youtube' (#1) или 'свое видео' (#2) 
@@ -109,41 +108,41 @@ class Client2bot:
     # обрабатывает ссылку youtube
     async def youtube_link_handler(self, message: types.Message): 
         # Получаем ссылку на YouTube из сообщения
-        self.youtube_link = message.text
+        # self.youtube_link = message.text
         #
-        self.youtube_info=None
-        self.youtube_info=You2b(url=self.youtube_link, logger=self.Logger)
+        # self.youtube_info=None
+        self.youtube_info=You2b(url=message.text, logger=self.Logger)
+        self.video_duration=str(self.youtube_info.duration_iso8601)
         # заполняем поля
-        self.video_url=str(self.youtube_info.video_url)
-        self.video_id=str(self.youtube_info.video_id)
+        # self.video_url=str(self.youtube_info.video_url)
+        # self.video_id=str(self.youtube_info.video_id)
         self.channel_title=str(self.youtube_info.channel_title)
         self.video_title=str(self.youtube_info.video_title)
-        self.video_duration=str(self.youtube_info.duration_iso8601)
-        self.default_audio_language=str(self.youtube_info.default_audio_language)
-        self.username=str(message.from_user.username)
-        self.date_message=str(message.date)
-        self.user_id=str(message.from_user.id)
-        self.chat_id=str(message.chat.id)
+        # self.default_audio_language=str(self.youtube_info.default_audio_language)
+        # self.username=str(message.from_user.username)
+        # self.date_message=str(message.date)
+        # self.user_id=str(message.from_user.id)
+        # self.chat_id=str(message.chat.id)
         #
         parsTime=ParseTime(logger=self.Logger)
-        self.video_duration_sec, self.datatime_duration=parsTime.format_iso8601_sec_dt(time_iso8601=self.video_duration)
-        self.duration_minuts=parsTime.format_sec2minuts(time_sec=self.video_duration_sec)
+        self.video_duration_sec, self.datatime_duration=parsTime.format_iso8601_sec_dt(self.video_duration)
+        self.duration_minuts=parsTime.format_sec2minuts(self.video_duration_sec)
         #
         # формируем строку таблицы task 
         self.diction4db={
-            'url_video_y2b' : self.video_url,
-            'video_id' : self.video_id,
+            'date_message' : str(message.date),
+            'chat_id' : str(message.chat.id),
+            'user_id' : str(message.from_user.id),
+            'username' : str(message.from_user.username),
+            'url_video_y2b' : str(self.youtube_info.video_url),
+            'video_id' : str(self.youtube_info.video_id),
             'channel_title' : self.channel_title,
             'video_title' : self.video_title,
             'video_duration' : self.video_duration,
             'video_duration_sec' : self.video_duration_sec,
-            'datatime_duration' : self.datatime_duration,
+            # 'datatime_duration' : self.datatime_duration,
             'duration_minuts' : self.duration_minuts,
-            'default_audio_language' : self.default_audio_language,
-            'username' : self.username,
-            'date_message' : self.date_message,
-            'user_id' : self.user_id,
-            'chat_id' : self.chat_id,
+            'default_audio_language' : str(self.youtube_info.default_audio_language),
                         }
         #
         # спрашиваем подтверждение ссылки youtube
@@ -152,9 +151,9 @@ class Client2bot:
             kb = KeyBoardClient(logger=self.Logger, row_width=1)
             kb.button_OK_NO_youtube_link() 
             # отвечаем пользователю на введенную ссылку YouTube 
-            mes4user=(f'Видео: [*{self.video_title}*] \n\n'
-                      f'Канал: [*{self.channel_title}*] \n\n'
-                      f'Продолжительность: {self.duration_minuts}')
+            mes4user=(f'Видео: {self.video_title} \n\n'
+                      f'Канал: {self.channel_title} \n\n'
+                      f'Продолжительность: {self.duration_minuts} \n')
             # отправляем клавиатуру подтверждения 
             await bot.send_message(message.from_user.id, mes4user, reply_markup=kb.keyboard)
             # Устанавливаем состояние ожидания подтверждения
@@ -165,8 +164,8 @@ class Client2bot:
             kb = KeyBoardClient(logger=self.Logger, row_width=1)
             kb.button_OK_NO_youtube_link_bad() 
             mes4user=(f'{self.date_message} Вы ввели ошибочную ссылку'
-                      f'на видео с названием: [*{self.video_title}*] '
-                      f'на канале [*{self.channel_title}*] \n'
+                      f'на видео с названием: {self.video_title} '
+                      f'на канале {self.channel_title} \n'
                       f'Будете вводить другую ссылку?')
             await bot.send_message(message.from_user.id, mes4user, reply_markup=kb.keyboard)
             # Устанавливаем состояние ожидания подтверждения
@@ -174,8 +173,8 @@ class Client2bot:
         #
     # обрабатываем нажатие кнопки ОК #3 youtube_link 
     async def youtube_link_OK(self, callback: types.CallbackQuery, state: FSMContext):
-        mes4user=(f'Введите временные метки фрагмента из видео: '
-                  f'[*{self.video_title}*]. \n'
+        mes4user=(f'Введите временные метки фрагмента из видео: \n'
+                  f'{self.video_title} \n'
                   f'Формат временных меток начала и конца фрагмента: \n'
                   f'00:00:00-00:00:00, формат: [ЧЧ:ММ:СС-ЧЧ:ММ:СС]')
         await callback.message.answer(mes4user)
@@ -188,7 +187,14 @@ class Client2bot:
     async def youtube_timestamp(self, message: types.Message):
         self.timestamp = message.text
         parsTime=ParseTime(logger=self.Logger)
-        self.timestamp_start, self.timestamp_start_dt, self.timestamp_end, self.timestamp_end_dt, self.segment_duration = parsTime.parse_time(timestamp=self.timestamp)
+        # self.timestamp_start, self.timestamp_start_dt, self.timestamp_end, self.timestamp_end_dt, self.segment_duration = parsTime.parse_time(timestamp=self.timestamp)
+        (   self.timestamp_start, 
+            self.timestamp_start_dt, 
+            self.timestamp_end, 
+            self.timestamp_end_dt, 
+            self.segment_duration
+        ) = parsTime.parse_time(self.timestamp)
+        
         # проверяем метки на корректность
         if int(self.segment_duration) >= int(self.video_duration_sec):
             mes4user=(f'Длительность фрагмента больше самого видео!  \n'
@@ -211,11 +217,11 @@ class Client2bot:
         # отвечаем пользователю на введенные временные метки 
         # отправляем клавиатуру подтверждения ОК & NO
         mes4user=(f'Вы передали временные метки фрагмента: \n'
-                  f'Начало: [{self.timestamp_start}] \n'
-                  f'Окончание: [{self.timestamp_end}] \n'
-                  f'Продолжительность фрагмента: [{parsTime.format_sec2minuts(time_sec=self.segment_duration)}] \n\n'
-                  f'Видео: [*{self.video_title}*] \n'
-                  f'Канал: [*{self.channel_title}*] \n\n'
+                  f'Начало: {self.timestamp_start} \n'
+                  f'Окончание: {self.timestamp_end} \n'
+                  f'Продолжительность фрагмента: {parsTime.format_sec2minuts(self.segment_duration)} \n\n'
+                  f'Видео: {self.video_title} \n'
+                  f'Канал: {self.channel_title} \n\n'
                   f'Нажмите \U0001F447 кнопку ОК, если подтверждаете')
         await bot.send_message(message.from_user.id, mes4user, reply_markup=kb.keyboard)
         # Устанавливаем состояние ожидания подтверждения
@@ -226,14 +232,14 @@ class Client2bot:
         #
         parsTime=ParseTime(logger=self.Logger)
         mes4user=(f'Вы подтвердили временные метки фрагмента: \n'
-                  f'Начало: [{self.timestamp_start}] \nОкончание: [{self.timestamp_end}] \n'
-                  f'Продолжительность фрагмента: [{parsTime.format_sec2minuts(time_sec=self.segment_duration)}] \n\n'
-                  f'Видео: [*{self.video_title}*] \n'
-                  f'Канал: [*{self.channel_title}*] \n\n'
+                  f'Начало: {self.timestamp_start} \n'
+                  f'Окончание: {self.timestamp_end} \n'
+                  f'Продолжительность фрагмента: {parsTime.format_sec2minuts(time_sec=self.segment_duration)} \n\n'
+                  f'Видео: {self.video_title} \n'
+                  f'Канал: {self.channel_title} \n\n'
                   f'Бот начал работать... \n'
-                  f'Результат в виде ссылки для скачивания, будет передана в этот чат. \n'
-                  f'Через шесть часов, фрагмент будет удален из облака. Не забудьте скачать фрагмент на свой девайс.\n'
-                  f'Ожидайте...')
+                  f'Результат будет передан в этот чат. \n'
+                  f'Ожидайте... \n')
         await callback.message.answer(mes4user)
         # убираем часики на кнопке, которую нажали
         await callback.answer() # 
@@ -241,17 +247,17 @@ class Client2bot:
         await state.finish()
         #
         # дописываем в строку временные метки для БД
+        self.diction4db['segment_duration']=self.segment_duration
         self.diction4db['time_task']=int(time())
         self.diction4db['timestamp_start']=self.timestamp_start
-        self.diction4db['timestamp_start_dt']=self.timestamp_start_dt
+        # self.diction4db['timestamp_start_dt']=self.timestamp_start_dt
         self.diction4db['timestamp_end']=self.timestamp_end
-        self.diction4db['timestamp_end_dt']=self.timestamp_end_dt
-        self.diction4db['segment_duration']=self.segment_duration
+        # self.diction4db['timestamp_end_dt']=self.timestamp_end_dt
         # задача не проверялась на закачку исходника
         self.diction4db['in_work_download']='not_download'
         self.diction4db['path_download']='not_path'
         self.diction4db['in_work_frag']='not_frag' 
-        self.diction4db['num_frag']=2 
+        # self.diction4db['num_frag']=2 
         self.diction4db['name_frag']='not_name.frag' 
         self.diction4db['path_frag']='not_path' 
         self.diction4db['send']='not_send'

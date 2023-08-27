@@ -1,8 +1,7 @@
 #!/usr/bin/env python3 
 #
 from pyrogram import Client
-
-from time import sleep, time
+from time import sleep
 import os, asyncio, logging
 from bot_env.mod_log import Logger
 from data_base.base_db import BaseDB
@@ -37,6 +36,17 @@ class Snd:
     def progress_bar(self, current, total):
         print(f"\rПрогресс отправки: {current * 100 / total:.1f}%", end="", flush=True)
 
+    # обертка для безопасного выполнения методов
+    # async def safe_execute(self, coroutine: Callable[..., Coroutine[Any, Any, T]]) -> T:
+    async def safe_execute(self, coroutine, name_func: str = None):
+        try:
+            print(f'\n***Dnld safe_execute: выполняем обертку ****')
+            return await coroutine
+        except Exception as eR:
+            print(f'\nERROR[Dnld {name_func}] ERROR: {eR}') 
+            self.Logger.log_info(f'\nERROR[Dnld {name_func}] ERROR: {eR}') 
+            return None
+
     # отправляем фрагмент в группу Snipper 
     async def send2group(self, path: str):
         file_id=''
@@ -53,7 +63,7 @@ class Snd:
         # Получаем file_id видео
         file_id = message.video.file_id
         if file_id:
-            print(f"\n[Snd: send2group] id: {file_id} отправлено в группу: {self.group}")
+            print(f"\n[Snd: send2group] id: {file_id} отправлено в группу")
             return file_id
         else: 
             print(f"\nERROR [Snd: send2group] Видео не отправлено! file_id: {file_id}")
@@ -86,9 +96,6 @@ class Snd:
         
         # # список путей к фрагментам на диске
         path_frags = [str(row.path_frag) for row in rows]
-        # список id чатов которые заказали фрагмент
-        # user_ids = [str(row.user_id) for row in rows]
-        # date_messages = [str(row.date_message) for row in rows]
         list_sended=[]
         # отправляем пользователям фрагменты
         for path_frag in path_frags:
@@ -108,14 +115,9 @@ class Snd:
             if not await self.Db.update_table_path(['task', 'frag'], path_frag, diction):
                 print(f'\n[Snd send_frag_users update_table] не записали в таблицы [task, frag] отметки об отправке')
                 return None
-            # sended = await self.bot2user(user_id, file_id)
-            # if not sended:
-            #     print(f'\n[Snd send_frag_users send_frag] не отправили пользователю видео {file_id}')
-            #     return None
             list_sended.append(file_id) 
         return list_sended
-            
-                
+
 #
 # MAIN **************************
 async def main():

@@ -24,7 +24,6 @@ class KeyBoardClient:
         self.keyboard = InlineKeyboardMarkup(row_width=self.row_width) 
         #
         # кнопки
-        #self.b_CS = None
         self.b_y2b = None
         self.b_OK_y2b = None
         self.b_NO_y2b = None
@@ -59,10 +58,9 @@ class KeyBoardClient:
         self.name_button['7']='OK'
         self.name_button['8']='NO'
         #
-        self.name_button['9']='2022'
-        self.name_button['10']='2023'
-
-        self.name_button['20']='меню 3 уровня'
+        # self.name_button['9']='2022'
+        # self.name_button['10']='2023'
+        # self.name_button['20']='меню 3 уровня'
         print(f'[_make_name_button] создали клавиатуру № {self.countInstance}')
     #
     # выводим № объекта
@@ -102,13 +100,13 @@ class KeyBoardClient:
         self.keyboard.row(self.b_OK_y2b_timestamp).row(self.b_NO_y2b_timestamp)
     #
     # создаем кнопки меню второго уровня
-    def menu_2_level(self):
-        self.b_2022 = InlineKeyboardButton(text=self.name_button['9'], callback_data='9')
-        self.b_2023 = InlineKeyboardButton(text=self.name_button['10'], callback_data='10')
-        self.keyboard.add(self.b_2020, self.b_2021, self.b_2022, self.b_2023)
+    # def menu_2_level(self):
+    #     self.b_2022 = InlineKeyboardButton(text=self.name_button['9'], callback_data='9')
+    #     self.b_2023 = InlineKeyboardButton(text=self.name_button['10'], callback_data='10')
+    #     self.keyboard.add(self.b_2020, self.b_2021, self.b_2022, self.b_2023)
     #
     # создаем кнопки меню третьего уровня
-    def menu_3_level(self):
-        self.b_menu_3 = InlineKeyboardButton(text=self.name_button['20'], callback_data='20')
-        self.keyboard.add(self.b_menu_3)
+    # def menu_3_level(self):
+    #     self.b_menu_3 = InlineKeyboardButton(text=self.name_button['20'], callback_data='20')
+    #     self.keyboard.add(self.b_menu_3)
 
